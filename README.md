@@ -1,56 +1,38 @@
 # Elektritarbimise optimeerimine kasvuhoones
 
-## Greenhouse Energy Optimization
-
-## Projekti eesmärk
-
-Selle projekti eesmärk on analüüsida, millal tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulusid börsihinnaga elektrilepingu korral.
-
-Projekt kasutab elektri börsihindu ja ilmaandmeid, et leida soodsaimad ajad elektri tarbimiseks.
-
----
-
 ## Äriküsimus
 
-Millistel tundidel tasub kasvuhoones elektrit tarbida (küte, ventilatsioon), et börsihinnaga lepingu korral minimeerida kulusid, arvestades välistemperatuuri ja päikesekiirgust?
-
-### Millal on kõige soodsam kasutada kasvuhoones:
-- kütet
-- ventilatsiooni
-
-### Arvestades:
-- elektri börsihinda
-- välistemperatuuri
-- päikesekiirgust
+Millistel tundidel tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulu börsihinna tingimustes, arvestades välistemperatuuri?
 
 ---
 
 ## Projekti allikas ja töörepo
 
-- Kursuse juhised ja näidismaterjalid pärinevad repost:  
-  `https://github.com/KristoR/ut-andmeinseneeria-2026`
+- Kursuse juhised ja näidismaterjalid pärinevad repost: `https://github.com/KristoR/ut-andmeinseneeria-2026`
+- Aktiivne töörepo: `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`
 
-- Aktiivne töö käib selles repos:  
-  `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`
-
-See projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi ning katab otsast-lõpuni andmetöövoo:
-
-1. andmete sissevõtt
-2. transformatsioon
-3. andmekvaliteedi testid
-4. dashboard
+See projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi ning sisaldab:
+1. andmete sissevõttu,
+2. transformatsiooni,
+3. andmekvaliteedi teste,
+4. dashboardi.
 
 ---
 
-## Andmeallikad
+## Projekti eesmärk
 
-Meie lihtsustus: kasvuhoone sisetemperatuuri sensorit ei kasutata.
+Projekti eesmärk on analüüsida, millal on kasvuhoones kõige mõistlikum kasutada elektrit nõudvaid seadmeid, et vähendada elektrikulusid börsihinnaga elektrilepingu korral.
 
-### Elektrihinnad
-- Elering API
+Projekt kasutab:
+- elektri spot-hindu,
+- välistemperatuuri andmeid,
+- lihtsustatud kasvuhoone temperatuurimudelit.
 
-### Ilmaandmed
-- Ilmateenistuse API
+---
+
+## Lihtsustusmudel
+
+Kuna projektis ei kasutata päris kasvuhoone sisetemperatuuri sensorit, arvutatakse hinnanguline sisetemperatuur välistemperatuuri põhjal.
 
 ### Hinnanguline sisetemperatuur
 
@@ -60,17 +42,38 @@ hinnanguline_sisetemp = välistemp + 5°C
 
 ### Juhtimisreeglid
 
-- kui `hinnanguline_sisetemp < 12°C` → küte vajalik
-- kui `hinnanguline_sisetemp > 28°C` → ventilatsioon vajalik
-- muidu → temperatuur sobiv
+- kui `hinnanguline_sisetemp < 12°C` → **küte vajalik**
+- kui `hinnanguline_sisetemp > 28°C` → **ventilatsioon vajalik**
+- muidu → **temperatuur sobiv**
+
+Mudelit kasutatakse demonstratsiooniks ning tegemist ei ole täpse agronoomilise simulatsiooniga.
 
 ---
 
 ## KPI-d / küsimused dashboardil
 
-1. Mitu tundi ööpäevas on küte/ventilatsioon vajalik?
-2. Millised on odavaimad tunnid, mil vajalikku seadet käitada?
-3. Päevane hinnanguline energiakulu (€), kui järgida soovitusreegleid.
+1. Soovitatud tunnid kütte ja ventilatsiooni kasutamiseks
+2. Millised on odavaimad tunnid vajalike seadmete käitamiseks
+3. Päevane hinnanguline energiakulu (€), kui järgida soovitusreegleid
+
+---
+
+## Andmeallikad
+
+### Elektri spot-hind
+- Elering / Nord Pool API
+- tunnipõhine
+- ajas muutuv põhiandmeallikas
+
+### Ilmaandmed
+- Ilmateenistuse API
+- välistemperatuur
+- tunnipõhine
+- ajas muutuv põhiandmeallikas
+
+### Staatilised kõrvalandmed
+- seadmete hinnanguline võimsustarve
+- kasutatakse energiakulu arvutamiseks
 
 ---
 
@@ -85,23 +88,34 @@ hinnanguline_sisetemp = välistemp + 5°C
 
 ---
 
-## Tehniline arhitektuur
+## Planeeritud töövoog
 
-- Ingest: Python skriptid / API päringud
-- Bronze: toorandmed
-- Silver: puhastatud ja ühendatud tunniandmed
-- Gold: analüütiline faktitabel
-- Dashboard: Metabase / Power BI / Superset
+1. Python script küsib API-dest elektrihinna ja ilmaandmed
+2. Andmed salvestatakse PostgreSQL / Supabase andmebaasi
+3. SQL transformatsioonid ühendavad tunniandmed
+4. Rakendatakse temperatuuripõhised soovitusreeglid
+5. Dashboard kuvab KPI-d ja soovitused
+6. cron käivitab andmete uuendamise automaatselt
 
 ---
 
-## Planeeritud töövoog
+## Arhitektuur
 
-1. Python script küsib API-dest andmed
-2. Andmed salvestatakse PostgreSQL andmebaasi
-3. SQL päringud valmistavad andmed analüüsiks ette
-4. Dashboard kuvab soovitused ja hinnainfo
-5. cron käivitab andmete uuendamise automaatselt
+```mermaid
+flowchart LR
+    A[Elering API] --> B[Python ingest]
+    C[Ilma API] --> B
+
+    B --> D[(PostgreSQL / Supabase)]
+
+    D --> E[SQL transformatsioonid]
+
+    E --> F[(Analytics tabel)]
+
+    F --> G[Dashboard]
+
+    F --> H[Andmekvaliteedi testid]
+```
 
 ---
 
@@ -120,16 +134,34 @@ hinnanguline_sisetemp = välistemp + 5°C
 
 ---
 
+## Andmekvaliteedi testid
+
+Projektis kasutatakse vähemalt järgmisi teste:
+
+- elektrihind ei tohi olla NULL
+- temperatuur peab jääma mõistlikku vahemikku
+- tunnikirjed peavad olema unikaalsed
+
+---
+
 ## Käivituse üldskeem
 
-1. Sea `.env` fail API võtmetega (ära commiti seda)
+1. Sea `.env` fail API võtmetega
 2. Käivita ingest-skriptid
-3. Käivita transformatsioonid
+3. Käivita SQL transformatsioonid
 4. Käivita andmekvaliteedi testid
 5. Uuenda dashboardi andmemudel
 
 ---
 
+## Riskid
+
+1. API katkestused või päringupiirangud
+2. Ajavööndite vastuolu (UTC vs Europe/Tallinn)
+3. Vigased või puuduvad tunniandmed API-st
+
+---
+
 ## Meeskond
 
-Projekt on planeeritud 4-liikmelisele grupile. Rollid jaotusena kirjeldatakse failis `docs/arhitektuur.md`.
+Projekt on planeeritud 4-liikmelisele grupile. Rollid jaotusena on kirjeldatud failis `docs/arhitektuur.md`.
