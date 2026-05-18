@@ -1,0 +1,4 @@
+# Näidis crontab (käivita iga tunni alguses)
+# Ava crontab: crontab -e
+
+0 * * * * cd /workspace/Elektritarbimise_optimeerimine_kasvuhoones && /bin/bash scripts/run_ingest.sh >> logs/ingest.log 2>&1
