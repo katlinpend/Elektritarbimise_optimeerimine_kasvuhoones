@@ -25,6 +25,11 @@ Seetõttu kasutame `FORECAST_DAYS=2`.
 - `>28°C` → ventilatsioon vajalik
 - muidu sobiv
 
+- ### Asukohavaliku põhjendus
+
+Kuigi projekt ei kasuta konkreetse kasvuhoone sisetemperatuuri sensoreid, on eesmärk pakkuda otsustusabi eri Eesti piirkondade kasvuhoone omanikele.  
+Seetõttu on `mart.dim_location` tabelis mitu Eesti asulat: need toimivad piirkondlike “esinduspunktidena”, mille põhjal saab võrrelda, kus ja millal on küte/ventilatsioon börsihinna mõttes soodsam.
+
 ## Andmekihid
 - `staging`: toorandmed API-dest
 - `mart`: otsuseloogika ja koondid
@@ -118,6 +123,7 @@ Andmekvaliteedi testide tulemused.
 
 ### Liiga pikk prognoos, millele hinnad puuduvad
 **Leevendus:** hoida otsustusaken day-ahead loogikaga kooskõlas (`FORECAST_DAYS=2`).q
+<<<<<<< HEAD
 =======
 ## Reposid
 - Kursuse infoallikas: `https://github.com/KristoR/ut-andmeinseneeria-2026`
@@ -188,3 +194,5 @@ flowchart LR
 - API-de testpäringud tehtud.
 - Rollid ja esmane tehniline plaan paigas.
 >>>>>>> theirs
+=======
+>>>>>>> 3806c40c6f83c919c3b30ad8122f10563a9c09b4
