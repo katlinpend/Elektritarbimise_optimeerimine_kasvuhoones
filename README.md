@@ -1,17 +1,17 @@
-# Elektritarbimise_optimeerimine_kasvuhoones
+# Elektritarbimise optimeerimine kasvuhoones (Greenhouse Energy Optimization)
 Millistel tundidel on kasvuhoones kõige mõistlikum kasutada elektrit nõudvaid seadmeid, et börsihinnaga lepingu korral kulusid vähendada, arvestades ilmaolusid?
-# Greenhouse Energy Optimization
 
 ## Projekti eesmärk
+Selle projekti eesmärk on analüüsida, millal tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulusid börsihinnaga elektrilepingu korral.
+
 ## Äriküsimus
 Millistel tundidel tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulu börsihinna tingimustes, arvestades välistemperatuuri?
 
-Selle projekti eesmärk on analüüsida, millal tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulusid börsihinnaga elektrilepingu korral.
 ## Projekti allikas ja töörepo
 - Kursuse juhised ja näidismaterjalid pärinevad repost: `https://github.com/KristoR/ut-andmeinseneeria-2026`.
 - Aktiivne töö käib selles repos: `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`.
-
 Projekt kasutab elektri börsihindu ja ilmaandmeid, et leida soodsaimad ajad elektri tarbimiseks.
+
 ## Projekti ulatus
 Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi ning katab otsast-lõpuni andmetöövoo:
 1. andmete sissevõtt,
@@ -19,15 +19,14 @@ Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete jär
 3. andmekvaliteedi testid,
 4. dashboard.
 
-## Äriküsimus
 ## Lihtsustusmudel
 Kuna sisetemperatuuri sensorit ei kasutata, lähtume baastaseme hinnangust:
-
 - `hinnanguline_sisetemp = välistemp + 5°C`
 
 Millal on kõige soodsam kasutada kasvuhoones:
 - kütet
 - ventilatsiooni
+
 Juhtimisreeglid:
 - kui `hinnanguline_sisetemp < 12°C` → **küte vajalik**,
 - kui `hinnanguline_sisetemp > 28°C` → **ventilatsioon vajalik**,
@@ -36,7 +35,7 @@ Juhtimisreeglid:
 arvestades:
 - elektri börsihinda
 - välistemperatuuri
-- päikesekiirgust
+- päikesekiirgust   ????
 Mudelit kasutatakse demonstratsiooniks ning tegemist ei ole täpse agronoomilise simulatsiooniga.
 
 ## Andmeallikad
@@ -65,6 +64,7 @@ Oluline piirang: Eleringi day-ahead hinnad on otsustamiseks usaldusväärselt k�
 - cron
 - GitHub
 - Metabase / Power BI
+
 ## Tehniline voog
 ```mermaid
 flowchart LR
@@ -78,6 +78,7 @@ flowchart LR
 ```
 
 ## Planeeritud töövoog
+
 ## Minimaalne kaustastruktuur
 ```text
 .
@@ -105,6 +106,7 @@ flowchart LR
 3. SQL päringud valmistavad andmed analüüsiks ette
 4. Dashboard kuvab soovitused ja hinnainfo
 5. cron käivitab andmete uuendamise automaatselt
+
 ## Käivitamine
 ```bash
 cp .env.example .env
@@ -128,9 +130,11 @@ Dashboard:
 - http://localhost:8501
 
 ## Meeskond
-Projekt on planeeritud 4-liikmelisele grupile. Rollid jaotusena on kirjeldatud failis `docs/arhitektuur.md`.
-
-
+Rollid jaotusena on kirjeldatud failis `docs/arhitektuur.md`.
+1. Sirja Hass
+2. Ave Kaare
+3. Piret Sults
+4. Kätlin Pendarov
 
 
 
