@@ -78,7 +78,6 @@ flowchart LR
 ```
 
 ## Planeeritud töövoog
-
 ## Minimaalne kaustastruktuur
 ```text
 .
@@ -128,6 +127,7 @@ sql/            SQL päringud
 dashboard/      visualiseeringud
 Dashboard:
 - http://localhost:8501
+```
 
 ## Meeskond
 Rollid jaotusena on kirjeldatud failis `docs/arhitektuur.md`.
