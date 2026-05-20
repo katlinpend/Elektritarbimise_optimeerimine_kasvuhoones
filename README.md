@@ -75,7 +75,8 @@ flowchart LR
     E --> F[(mart)]
     F --> G[Dashboard]
     F --> H[Quality tests]
-```
+``
+
 
 ## Planeeritud töövoog
 ## Minimaalne kaustastruktuur
