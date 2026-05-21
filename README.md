@@ -1,5 +1,4 @@
 # Elektritarbimise optimeerimine kasvuhoones (Greenhouse Energy Optimization)
-Millistel tundidel on kasvuhoones kõige mõistlikum kasutada elektrit nõudvaid seadmeid, et börsihinnaga lepingu korral kulusid vähendada, arvestades ilmaolusid?
 
 ## Projekti eesmärk
 Selle projekti eesmärk on analüüsida, millal tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulusid börsihinnaga elektrilepingu korral.
@@ -7,78 +6,130 @@ Selle projekti eesmärk on analüüsida, millal tasub kasvuhoones kasutada elekt
 ## Äriküsimus
 Millistel tundidel tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulu börsihinna tingimustes, arvestades välistemperatuuri?
 
+---
+
 ## Projekti allikas ja töörepo
-- Kursuse juhised ja näidismaterjalid pärinevad repost: `https://github.com/KristoR/ut-andmeinseneeria-2026`.
-- Aktiivne töö käib selles repos: `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`.
+
+- Kursuse juhised ja näidismaterjalid pärinevad repost: `https://github.com/KristoR/ut-andmeinseneeria-2026`
+- Aktiivne töö toimub selles repos: `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`
+
 Projekt kasutab elektri börsihindu ja ilmaandmeid, et leida soodsaimad ajad elektri tarbimiseks.
 
+---
+
 ## Projekti ulatus
-Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi ning katab otsast-lõpuni andmetöövoo:
-1. andmete sissevõtt,
-2. transformatsioon,
-3. andmekvaliteedi testid,
-4. dashboard.
+
+Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi ning katab otsast lõpuni andmetöövoo:
+
+1. Andmete sissevõtt (ingest)
+2. Transformatsioon
+3. Andmekvaliteedi testid
+4. Dashboard
+
+---
 
 ## Lihtsustusmudel
-Kuna sisetemperatuuri sensorit ei kasutata, lähtume baastaseme hinnangust:
-- `hinnanguline_sisetemp = välistemp + 5°C`
 
-Millal on kõige soodsam kasutada kasvuhoones:
-- kütet
-- ventilatsiooni
+Kuna sisetemperatuuri sensorit ei kasutata, lähtume baastaseme hinnangust:
+
+```text
+hinnanguline_sisetemp = välistemp + 5°C
+```
 
 Juhtimisreeglid:
-- kui `hinnanguline_sisetemp < 12°C` → **küte vajalik**,
-- kui `hinnanguline_sisetemp > 28°C` → **ventilatsioon vajalik**,
-- muidu → **temperatuur sobiv**.
 
-arvestades:
-- elektri börsihinda
-- välistemperatuuri
+- kui `hinnanguline_sisetemp < 12°C` → küte vajalik
+- kui `hinnanguline_sisetemp > 28°C` → ventilatsioon vajalik
+- muidu → temperatuur sobiv
+
+Arvesse võetakse:
+
+- elektri börsihind
+- välistemperatuur
+
 Mudelit kasutatakse demonstratsiooniks ning tegemist ei ole täpse agronoomilise simulatsiooniga.
 
+---
+
 ## Andmeallikad
-## KPI-d / küsimused dashboardil
-1. Soovitatud tunnid kütte ja ventilatsiooni kasutamiseks.
-2. Millised on odavaimad tunnid, mil vajalikku seadet käitada?
-3. Päevane hinnanguline energiakulu (€), kui järgida soovitusreegleid.
 
-### Elektrihinnad
-- Elering API
-## Andmeallikad ja ulatus
-Selles projektis modelleerime kasvuhoone otsuseid piirkondliku ilma põhjal 5 Eesti asulaga (Tallinn, Tartu, Pärnu, Kohtla-Järve, Kuressaare).
+Projekt modelleerib kasvuhoone otsuseid 5 Eesti asukoha põhjal:
 
-### Ilmaandmed
-- Ilmateenistuse API
+- Tallinn
+- Tartu
+- Pärnu
+- Kohtla-Järve
+- Kuressaare
+
 Põhiandmeallikad:
-- **Open-Meteo Forecast API** (välistemperatuur ja tunniandmed),
-- **Elering NPS API** (`/api/nps/price`, börsihind tunni kaupa).
+
+- **Open-Meteo Forecast API** – välistemperatuur ja tunniandmed
+- **Elering NPS API** (`/api/nps/price`) – elektri börsihind tunni kaupa
+
+Oluline piirang:
+
+Eleringi day-ahead hinnad on otsustamiseks usaldusväärselt kättesaadavad peamiselt tänase ja homse kohta, seetõttu kasutatakse lühikest otsustusakent:
+
+```text
+FORECAST_DAYS=2
+```
+
+---
+
+## KPI-d / küsimused dashboardil
+
+1. Soovitatud tunnid kütte ja ventilatsiooni kasutamiseks
+2. Millised on odavaimad tunnid vajaliku seadme käitamiseks?
+3. Päevane hinnanguline energiakulu (€)
+
+---
 
 ## Tehnoloogiad
-Oluline piirang: Eleringi day-ahead hinnad on otsustamiseks usaldusväärselt kättesaadavad peamiselt tänase ja homse kohta, seega kasutame lühikest otsustusakent (`FORECAST_DAYS=2`).
 
 - Python
 - PostgreSQL / Supabase
 - SQL
+- Docker
 - cron
 - GitHub
 - Metabase / Power BI
 
+---
+
 ## Tehniline voog
+
 ```mermaid
 flowchart LR
-    A[Open-Meteo API] --> B[Pipeline ingest]
-    C[Elering API] --> B
+    A[Open-Meteo API]
+    C[Elering API]
+
+    A --> B[Pipeline ingest]
+    C --> B
+
     B --> D[(staging)]
+
     D --> E[SQL transform]
+
     E --> F[(mart)]
+
     F --> G[Dashboard]
     F --> H[Quality tests]
 ```
 
+---
 
 ## Planeeritud töövoog
+
+1. Python script küsib API-dest andmed
+2. Andmed salvestatakse PostgreSQL andmebaasi
+3. SQL transformatsioon valmistab andmed analüüsiks ette
+4. Dashboard kuvab soovitused ja hinnainfo
+5. cron käivitab andmete uuendamise automaatselt
+
+---
+
 ## Minimaalne kaustastruktuur
+
 ```text
 .
 ├── dashboard/
@@ -92,21 +143,18 @@ flowchart LR
 │   ├── 00_seed_dimensions.sql
 │   ├── 01_transform.sql
 │   ├── 02_quality_tests.sql
-│   ├── 03_check_results.sql
 │   ├── run_pipeline.py
 │   └── start_cron.sh
 ├── .env.example
 ├── compose.yml
+├── requirements.txt
 └── README.md
 ```
 
-1. Python script küsib API-dest andmed
-2. Andmed salvestatakse PostgreSQL andmebaasi
-3. SQL päringud valmistavad andmed analüüsiks ette
-4. Dashboard kuvab soovitused ja hinnainfo
-5. cron käivitab andmete uuendamise automaatselt
+---
 
 ## Käivitamine
+
 ```bash
 cp .env.example .env
 docker compose up -d --build
@@ -114,23 +162,38 @@ docker compose exec pipeline python scripts/run_pipeline.py run-all
 docker compose exec pipeline python scripts/run_pipeline.py check
 ```
 
-## Projekti struktuur
 Scheduleri logid:
+
 ```bash
 docker compose logs -f scheduler
 ```
 
-```text
-docs/           dokumentatsioon
-scripts/        Python scriptid
-sql/            SQL päringud
-dashboard/      visualiseeringud
 Dashboard:
-- http://localhost:8501
+
+```text
+http://localhost:8501
 ```
 
+---
+
+## Projekti struktuur
+
+```text
+docs/           dokumentatsioon
+scripts/        Python töövoog
+dashboard/      visualiseerimine
+init/           andmebaasi objektid
+```
+
+---
+
 ## Meeskond
-Rollid jaotusena on kirjeldatud failis `docs/arhitektuur.md`.
+
+Rollide jaotus on kirjeldatud failis:
+
+```text
+docs/arhitektuur.md
+```
 1. Sirja Hass
 2. Ave Kaare
 3. Piret Sults
