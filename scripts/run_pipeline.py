@@ -294,8 +294,8 @@ def ingest() -> uuid.UUID:
     run_id = uuid.uuid4()
     fetched_at = datetime.now(timezone.utc)
 
-    start_utc = fetched_at.replace(minute=0, second=0, microsecond=0)
-    end_utc = start_utc + timedelta(days=forecast_days + 1)
+    start_utc = fetched_at.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_utc = start_utc + timedelta(days=forecast_days)
 
     conn = get_connection()
     try:
