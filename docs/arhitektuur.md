@@ -5,23 +5,25 @@
 - Projekti töörepo: `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`
 
 ## 1) Äriküsimus
-Millistel tundidel tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulu börsihinna tingimustes, arvestades välistemperatuuri?
+Millistel tundidel on kasvuhoones vaja kasutada elektrit nõudvaid seamdeid (küte ja ventilatsioon), arvestades hinnangulist sisetemperatuuri ning kui palju väiksem on sellest tulenev elektrikulu võrreldes seadmete pideva elektritarbimisega? 
 
 ## 2) Mõõdikud (2–3) ja arvutusloogika
-1. **Soovitatud kütte ja ventilatsiooni tunnid päevas**  
-   Arvutusloogika: iga tunni kohta arvutame `hinnanguline_sisetemp = välistemp + 5°C`.  
-   Kui hinnanguline sisetemperatuur on alla 12°C, märgime tunni küttevajaduseks; kui üle 28°C, ventilatsioonivajaduseks; vastasel juhul “none”. Päevane mõõdik on nende tundide arv kokku.
+1. **Kütte- ja ventilatsioonitundide arv päevas**  
+   Arvutusloogika: iga tunni kohta arvutatakse hinnanguline_sisetemp = välistemp + 5°C.
+   Kui hinnanguline sisetemperatuur jääb alla 12°C, siis  loetakse küttevajadusega tunniks; kui üle 28°C,  ventilatsioonivajadusega tunniks; vastasel juhul “none”. Päevane mõõdik on nende tundide arv kokku.
 
-2. **Keskmine spot-hind soovitatud tundidel vs päeva keskmine spot-hind**  
-   Arvutusloogika: võtame kõik tunnid, kus tegevus on `heating` või `ventilation`, ja arvutame nende tundide keskmise `price_eur_mwh`. Võrdleme seda sama päeva kõigi tundide keskmise hinnaga, et näha, kas soovitused langevad kallimatesse või odavamatesse tundidesse.
+2. **Kas reeglipõhised tunnid on odavamad, kui päeva keskmine?(€/Kwh)**  
+   Arvutusloogika: arvutame kütte ja ventilatsioonitundide keskmise hinna (€/Kwh) kohta ning võrdleme päeva keskmisega. Tulemus selgitab, et kas reeglipõhine kulu on pideva tarbimisega võrreldes väiksem või suurem. 
 
-3. **Hinnanguline päevane energiakulu (€)**  
-   Arvutusloogika: iga soovitatud tunni kohta korrutame seadme hinnangulise tarbimise (kWh/h) ja vastava tunni spot-hinna (€/MWh ümber teisendatuna €/kWh), seejärel summeerime päeva lõikes.
+3. **Hinnanguline päevane energiakulu (€) reeglipõhises kasutuses vs pideva tarbimisega kulu**  
+   Arvutusloogika: iga kütte ja ventilatsioonitunni kohta korrutatakse seadme hinnanguline tarbimine selle tunni spot-hinnanga (Mwh teisendatud Kwh). Tunnipõhised kulud summeeritakse päeva lõikes. Võrdluseks arvutatakse sama valemiga kulu kõigi 24 tunni kohta (pidev tarbimine). Kahe tulemuse vahe näitab päevase säästu hinnangut. 
 
 ## 3) Lihtsustusmudel (baastase)
-Kuna sisetemperatuuri sensorit ei kasutata, arvutame hinnangu:
+Kuna kasvuhoone sisetemperatuuri sensor ja seadme tegelik energaitarbimine puuduvad, siis kasutatakse järgmisi hinnanguid:
 
 `hinnanguline_sisetemp = välistemp + 5°C`
+`keskmine_seadme_elektri_tarbimine_per_tund = 5kW`
+Eeldus: pideva elektri tarbimise puhul tähendab, et seade töötab kõigl 24 tunnil ja mõlemat seadet korraga ei kasutata.  
 
 Reeglid:
 - `hinnanguline_sisetemp < 12°C` → **küte vajalik**
