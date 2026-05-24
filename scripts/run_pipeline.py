@@ -1,8 +1,8 @@
-"""Näidisprojekti andmetöövoog.
+"""ETL pipeline runner (temperature + price scope).
 
-Skript loeb aktiivsed asukohad dimensioonitabelist, pärib Open-Meteo API-st
-tunnipõhise ilmaennustuse ja Elering API-st tunnihinnad, salvestab andmed
-`staging` kihti, ehitab `mart` kihis tabelid ning käivitab kvaliteedikontrollid.
+Loeb aktiivsed asukohad dimensioonitabelist, pärib Open-Meteo API-st
+tunnipõhise välistemperatuuri ja Elering API-st tunnihinna, salvestab andmed
+staging kihti, käivitab transformid ja kvaliteeditestid.
 """
 
 from __future__ import annotations
@@ -139,9 +139,8 @@ def fetch_forecast(location: dict, *, forecast_days: int) -> tuple[str, dict]:
     params = {
         "latitude": location["latitude"],
         "longitude": location["longitude"],
-        "hourly": "temperature_2m,precipitation,precipitation_probability,wind_speed_10m,is_day",
+        "hourly": "temperature_2m",
         "timezone": "Europe/Tallinn",
-        "wind_speed_unit": "ms",
         "forecast_days": forecast_days,
     }
 
@@ -195,14 +194,7 @@ def validate_hourly_payload(payload: dict, *, location_name: str) -> dict:
     if not isinstance(hourly, dict):
         raise UserFacingError(f"Asukoha {location_name} vastuses puudub `hourly` plokk.")
 
-    required_keys = [
-        "time",
-        "temperature_2m",
-        "precipitation",
-        "precipitation_probability",
-        "wind_speed_10m",
-        "is_day",
-    ]
+    required_keys = ["time", "temperature_2m"]
     missing = [key for key in required_keys if key not in hourly]
     if missing:
         joined = ", ".join(missing)
@@ -233,7 +225,6 @@ def load_location_rows(
     with conn.cursor() as cur:
         for index, time_value in enumerate(hourly["time"]):
             forecast_time = datetime.fromisoformat(time_value)
-            # teisendame timezone-naive UTC-naive võtmele
             forecast_time_utc = forecast_time.astimezone(timezone.utc).replace(tzinfo=None)
             price = price_map.get(forecast_time_utc)
 
@@ -247,21 +238,13 @@ def load_location_rows(
                     longitude,
                     forecast_time,
                     temperature_c,
-                    precipitation_mm,
-                    precipitation_probability_pct,
-                    wind_speed_ms,
-                    is_day,
                     price_eur_mwh,
                     fetched_at,
                     source_url
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (run_id, location_id, forecast_time) DO UPDATE SET
                     temperature_c = EXCLUDED.temperature_c,
-                    precipitation_mm = EXCLUDED.precipitation_mm,
-                    precipitation_probability_pct = EXCLUDED.precipitation_probability_pct,
-                    wind_speed_ms = EXCLUDED.wind_speed_ms,
-                    is_day = EXCLUDED.is_day,
                     price_eur_mwh = EXCLUDED.price_eur_mwh,
                     fetched_at = EXCLUDED.fetched_at,
                     source_url = EXCLUDED.source_url
@@ -274,10 +257,6 @@ def load_location_rows(
                     location["longitude"],
                     forecast_time.replace(tzinfo=None),
                     hourly["temperature_2m"][index],
-                    hourly["precipitation"][index],
-                    hourly["precipitation_probability"][index],
-                    hourly["wind_speed_10m"][index],
-                    hourly["is_day"][index],
                     price,
                     fetched_at,
                     source_url,
@@ -309,12 +288,21 @@ def ingest() -> uuid.UUID:
         )
 
         price_map = fetch_elering_prices(start_utc=start_utc, end_utc=end_utc)
+        log(f"Eleringi hinnapunkte: {len(price_map)}")
 
         total_rows = 0
+        missing_price_rows = 0
+
         for location in locations:
             log(f"Pärin ilmaandmeid: {location['location_name']}.")
             source_url, payload = fetch_forecast(location, forecast_days=forecast_days)
             hourly = validate_hourly_payload(payload, location_name=location["location_name"])
+
+            for t in hourly["time"]:
+                dt = datetime.fromisoformat(t).astimezone(timezone.utc).replace(tzinfo=None)
+                if dt not in price_map:
+                    missing_price_rows += 1
+
             rows_loaded = load_location_rows(
                 conn,
                 run_id=run_id,
@@ -331,7 +319,10 @@ def ingest() -> uuid.UUID:
             conn,
             run_id=run_id,
             status="success",
-            message=f"Laadimine õnnestus. Asukohti: {len(locations)}. Ridu kokku: {total_rows}.",
+            message=(
+                f"Laadimine õnnestus. Asukohti: {len(locations)}. "
+                f"Ridu kokku: {total_rows}. Hinnata ridu: {missing_price_rows}."
+            ),
         )
         log(f"Andmete vastuvõtt valmis. Käivituse ID: {run_id}.")
         return run_id
@@ -422,11 +413,7 @@ def check_results() -> None:
             conn,
             "Viimased laadimised",
             """
-            SELECT
-                run_id,
-                fetched_at,
-                status,
-                message
+            SELECT run_id, fetched_at, status, message
             FROM staging.pipeline_runs
             ORDER BY fetched_at DESC
             LIMIT 5
@@ -436,12 +423,7 @@ def check_results() -> None:
             conn,
             "Aktiivsed asukohad dimensioonis",
             """
-            SELECT
-                location_id,
-                location_name,
-                county,
-                latitude,
-                longitude
+            SELECT location_id, location_name, county, latitude, longitude
             FROM mart.dim_location
             WHERE is_active
             ORDER BY display_order, location_name
@@ -449,21 +431,20 @@ def check_results() -> None:
         )
         print_query(
             conn,
-            "Parimad 3-tunnised ajaaknad",
+            "Parimad 3-tunnised tegevusaknad",
             """
             SELECT
                 location_name,
                 window_start,
                 window_end,
-                avg_combined_score,
                 avg_temperature_c,
-                total_precipitation_mm,
-                max_precipitation_probability_pct,
-                max_wind_speed_ms,
+                avg_price_eur_mwh,
+                heating_hours,
+                ventilation_hours,
                 recommendation_label,
                 main_reason
             FROM mart.latest_outdoor_activity_windows
-            ORDER BY avg_combined_score DESC, window_start
+            ORDER BY avg_price_eur_mwh ASC NULLS LAST, window_start
             LIMIT 10
             """,
         )
@@ -471,10 +452,7 @@ def check_results() -> None:
             conn,
             "Andmekvaliteedi testid",
             """
-            SELECT
-                test_name,
-                status,
-                failed_rows
+            SELECT test_name, status, failed_rows
             FROM quality.test_results
             ORDER BY test_name
             """,
@@ -515,7 +493,7 @@ def run_all() -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Näidisprojekti ilmaandmete töövoog.")
+    parser = argparse.ArgumentParser(description="Kasvuhoone energia ETL töövoog.")
     parser.add_argument(
         "command",
         choices=["ingest", "transform", "test", "check", "reset", "run-all"],
