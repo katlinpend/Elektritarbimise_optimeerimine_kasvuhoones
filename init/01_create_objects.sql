@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS mart.hourly_weather_score (
     forecast_hour integer NOT NULL,
     temperature_c numeric(6, 2),
     price_eur_mwh numeric(10, 2),
+    price_eur_kwh numeric(10, 5),
     temperature_score integer NOT NULL,
     combined_score integer NOT NULL,
     suitability_label text NOT NULL,
