@@ -78,21 +78,53 @@ FORECAST_DAYS=2
 
 ## KPI-d / küsimused dashboardil
 
-1. Soovitatud tunnid kütte ja ventilatsiooni kasutamiseks
-2. Millised on odavaimad tunnid vajaliku seadme käitamiseks?
-3. Päevane hinnanguline energiakulu (€)
+### 1. Kütte- ja ventilatsioonitundide arv päevas
+Mitu tundi järgmise perioodi jooksul oli kasvuhoones vaja:
+- kasutada kütet,
+- kasutada ventilatsiooni,
+- või ei olnud sekkumine vajalik.
 
+Arvutus põhineb hinnangulisel sisetemperatuuril:
+
+`hinnanguline_sisetemp = välistemp + 5°C`
+
+Reeglid:
+- alla 12°C → küte
+- üle 28°C → ventilatsioon
+- muul juhul → tegevust pole vaja
+
+---
+
+### 2. Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga (€/kWh)
+Arvutatakse nende tundide keskmine elektrihind, kus küte või ventilatsioon oli vajalik, ning võrreldakse seda kogu päeva keskmise elektrihinnaga.
+
+See näitab, kas kasvuhoone kasutusvajadus langeb pigem odavama või kallima elektri ajale.
+
+---
+
+### 3. Hinnanguline päevane elektrikulu (€) reeglipõhises kasutuses vs pidevas kasutuses
+Reeglipõhise kasutuse korral eeldatakse, et seade töötab ainult vajaduse korral.
+
+Pideva kasutuse korral eeldatakse, et seade töötab kõik 24 tundi sõltumata temperatuurist.
+
+Elektrikulu arvutatakse valemiga:
+
+`seadme_tarbimine_kWh × elektrihind_€/kWh`
+
+Päeva lõpus võrreldakse:
+- reeglipõhist kasutust,
+- pidevat kasutust.
+
+Tulemuseks saadakse hinnanguline võimalik sääst.
 ---
 
 ## Tehnoloogiad
 
-- Python
-- PostgreSQL / Supabase
-- SQL
-- Docker
-- cron
-- GitHub
-- Metabase / Power BI
+-Dashboard: Python + Streamlit + Altair
+-Andmebaas: PostgreSQL
+-Andmetöötlus: Python + SQL
+-Konteinerid ja ajastus: Docker + cron
+-Versioonihaldus: GitHub
 
 ---
 
