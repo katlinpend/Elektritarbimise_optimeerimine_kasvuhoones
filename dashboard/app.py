@@ -119,26 +119,7 @@ daily = load_dataframe(
     """
 )
 
-windows = load_dataframe(
-    """
-    SELECT
-        w.location_id,
-        w.location_name,
-        l.county,
-        l.display_order,
-        w.window_start,
-        w.window_end,
-        w.avg_temperature_c,
-        w.avg_price_eur_mwh,
-        w.heating_hours,
-        w.ventilation_hours,
-        w.recommendation_label,
-        w.main_reason
-    FROM mart.latest_outdoor_activity_windows AS w
-    INNER JOIN mart.dim_location AS l ON w.location_id = l.location_id
-    ORDER BY w.avg_price_eur_mwh ASC NULLS LAST, w.window_start
-    """
-)
+
 
 latest_run = load_dataframe(
     """
@@ -181,12 +162,6 @@ if not daily.empty:
                 "rule_based_cost_eur", "avg_price_cost_eur", "estimated_savings_eur"]:
         daily[col] = pd.to_numeric(daily[col], errors="coerce")
 
-if not windows.empty:
-    windows["window_start"] = pd.to_datetime(windows["window_start"])
-    windows["window_end"] = pd.to_datetime(windows["window_end"])
-    for col in ["avg_temperature_c", "avg_price_eur_mwh",
-                "heating_hours", "ventilation_hours", "display_order"]:
-        windows[col] = pd.to_numeric(windows[col], errors="coerce")
 
 # ------------------------------------------------------------------
 # Küljeriba – asukoha valik
@@ -219,7 +194,7 @@ detail_location = st.sidebar.selectbox(
 # ------------------------------------------------------------------
 filt_hourly = hourly[hourly["location_name"].isin(selected_locations)].copy()
 filt_daily = daily[daily["location_name"].isin(selected_locations)].copy() if not daily.empty else pd.DataFrame()
-filt_windows = windows[windows["location_name"].isin(selected_locations)].copy() if not windows.empty else pd.DataFrame()
+
 
 # ------------------------------------------------------------------
 # Pealkiri ja viimane laadimine
@@ -366,36 +341,6 @@ if not filt_daily.empty:
         hide_index=True,
     )
 
-# ------------------------------------------------------------------
-# Odavaimad 3h ajaaknad kütteks/ventilatsiooniks
-# ------------------------------------------------------------------
-st.subheader("Odavaimad 3h ajaaknad seadme käitamiseks")
-
-if not filt_windows.empty:
-    filt_windows["Aken"] = (
-        filt_windows["window_start"].dt.strftime("%d.%m %H:%M")
-        + "–"
-        + filt_windows["window_end"].dt.strftime("%H:%M")
-    )
-    st.dataframe(
-        filt_windows.head(15)[[
-            "location_name", "county", "Aken",
-            "avg_temperature_c", "avg_price_eur_mwh",
-            "heating_hours", "ventilation_hours",
-            "recommendation_label", "main_reason",
-        ]].rename(columns={
-            "location_name": "Asukoht",
-            "county": "Maakond",
-            "avg_temperature_c": "Kesk. temp °C",
-            "avg_price_eur_mwh": "Kesk. hind €/MWh",
-            "heating_hours": "Kütetunde",
-            "ventilation_hours": "Vent. tunde",
-            "recommendation_label": "Soovitus",
-            "main_reason": "Põhjus",
-        }),
-        use_container_width=True,
-        hide_index=True,
-    )
 
 # ------------------------------------------------------------------
 # Temperatuuri detailvaade

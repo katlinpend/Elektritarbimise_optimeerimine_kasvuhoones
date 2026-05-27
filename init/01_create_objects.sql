@@ -67,23 +67,6 @@ CREATE TABLE IF NOT EXISTS mart.hourly_weather_score (
     PRIMARY KEY (run_id, location_id, forecast_time)
 );
 
-CREATE TABLE IF NOT EXISTS mart.outdoor_activity_windows (
-    run_id uuid NOT NULL,
-    location_id text NOT NULL REFERENCES mart.dim_location (location_id),
-    location_name text NOT NULL,
-    window_start timestamp NOT NULL,
-    window_end timestamp NOT NULL,
-    duration_hours integer NOT NULL,
-    avg_temperature_c numeric(6, 2),
-    avg_price_eur_mwh numeric(10, 2),
-    heating_hours integer NOT NULL,
-    ventilation_hours integer NOT NULL,
-    avg_combined_score numeric(5, 1) NOT NULL,
-    min_combined_score integer NOT NULL,
-    recommendation_label text NOT NULL,
-    main_reason text NOT NULL,
-    PRIMARY KEY (run_id, location_id, window_start)
-);
 
 CREATE TABLE IF NOT EXISTS mart.daily_weather_summary (
     run_id uuid NOT NULL,
@@ -144,8 +127,3 @@ FROM mart.hourly_weather_score AS h
 INNER JOIN mart.latest_pipeline_run AS r
     ON h.run_id = r.run_id;
 
-CREATE OR REPLACE VIEW mart.latest_outdoor_activity_windows AS
-SELECT w.*
-FROM mart.outdoor_activity_windows AS w
-INNER JOIN mart.latest_pipeline_run AS r
-    ON w.run_id = r.run_id;

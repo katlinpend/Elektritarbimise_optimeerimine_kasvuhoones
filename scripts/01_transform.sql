@@ -1,5 +1,4 @@
 TRUNCATE TABLE
-    mart.outdoor_activity_windows,
     mart.hourly_weather_score,
     mart.daily_weather_summary,
     mart.fact_weather_forecast;
@@ -107,70 +106,6 @@ SELECT
     action_needed
 FROM scored;
 
--- 3) 3h aknad
-INSERT INTO mart.outdoor_activity_windows (
-    run_id,
-    location_id,
-    location_name,
-    window_start,
-    window_end,
-    duration_hours,
-    avg_temperature_c,
-    avg_price_eur_mwh,
-    heating_hours,
-    ventilation_hours,
-    avg_combined_score,
-    min_combined_score,
-    recommendation_label,
-    main_reason
-)
-WITH windows AS (
-    SELECT
-        h1.run_id,
-        h1.location_id,
-        h1.location_name,
-        h1.forecast_time AS window_start,
-        h1.forecast_time + INTERVAL '3 hours' AS window_end,
-        COUNT(h2.forecast_time)::integer AS duration_hours,
-        ROUND(AVG(h2.temperature_c), 2) AS avg_temperature_c,
-        ROUND(AVG(h2.price_eur_mwh), 2) AS avg_price_eur_mwh,
-        SUM(CASE WHEN h2.action_needed = 'heating' THEN 1 ELSE 0 END)::integer AS heating_hours,
-        SUM(CASE WHEN h2.action_needed = 'ventilation' THEN 1 ELSE 0 END)::integer AS ventilation_hours,
-        ROUND(AVG(h2.combined_score), 1) AS avg_combined_score,
-        MIN(h2.combined_score)::integer AS min_combined_score
-    FROM mart.hourly_weather_score h1
-    JOIN mart.hourly_weather_score h2
-      ON h1.run_id = h2.run_id
-     AND h1.location_id = h2.location_id
-     AND h2.forecast_time >= h1.forecast_time
-     AND h2.forecast_time < h1.forecast_time + INTERVAL '3 hours'
-    GROUP BY h1.run_id, h1.location_id, h1.location_name, h1.forecast_time
-    HAVING COUNT(*) = 3
-)
-SELECT
-    run_id,
-    location_id,
-    location_name,
-    window_start,
-    window_end,
-    duration_hours,
-    avg_temperature_c,
-    avg_price_eur_mwh,
-    heating_hours,
-    ventilation_hours,
-    avg_combined_score,
-    min_combined_score,
-    CASE
-        WHEN heating_hours >= 2 THEN 'Kütmiseks sobiv aken'
-        WHEN ventilation_hours >= 2 THEN 'Ventilatsiooniks sobiv aken'
-        ELSE 'Temperatuur pigem stabiilne'
-    END AS recommendation_label,
-    CASE
-        WHEN heating_hours >= 2 THEN 'Enamik aknast vajab kütet'
-        WHEN ventilation_hours >= 2 THEN 'Enamik aknast vajab ventilatsiooni'
-        ELSE 'Suurt sekkumist ei ole vaja'
-    END AS main_reason
-FROM windows;
 
 -- 4) Päevakoond
 WITH hourly_costs AS (
@@ -268,7 +203,3 @@ SELECT h.*
 FROM mart.hourly_weather_score h
 JOIN mart.latest_pipeline_run r ON r.run_id = h.run_id;
 
-CREATE OR REPLACE VIEW mart.latest_outdoor_activity_windows AS
-SELECT w.*
-FROM mart.outdoor_activity_windows w
-JOIN mart.latest_pipeline_run r ON r.run_id = w.run_id;

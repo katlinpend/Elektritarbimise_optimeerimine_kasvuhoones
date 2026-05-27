@@ -121,13 +121,7 @@ test_cases AS (
              THEN 0 ELSE 1 END AS failed_rows,
         'Päevane koondtabel peab sisaldama ridu.' AS message
 
-    UNION ALL
-
-    SELECT
-        'mart_outdoor_windows_has_rows' AS test_name,
-        CASE WHEN EXISTS (SELECT 1 FROM mart.latest_outdoor_activity_windows)
-             THEN 0 ELSE 1 END AS failed_rows,
-        'Ajaakende tabel peab sisaldama ridu.' AS message
+    
 )
 INSERT INTO quality.test_results (test_name, status, failed_rows, message)
 SELECT
