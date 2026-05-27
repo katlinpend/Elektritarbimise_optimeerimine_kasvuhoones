@@ -355,10 +355,8 @@ def transform() -> None:
         execute_sql_file(conn, TRANSFORM_SQL)
         daily_rows = fetch_value(conn, "SELECT COUNT(*) FROM mart.daily_weather_summary;")
         latest_rows = fetch_value(conn, "SELECT COUNT(*) FROM mart.latest_daily_weather_summary;")
-        window_rows = fetch_value(conn, "SELECT COUNT(*) FROM mart.latest_outdoor_activity_windows;")
         log(f"Transformatsioon valmis. Päevaseid koondridu kokku: {daily_rows}.")
         log(f"Viimase laadimise päevaseid koondridu: {latest_rows}.")
-        log(f"Viimase laadimise 3-tunniseid ajaaknaid: {window_rows}.")
     finally:
         conn.close()
 
@@ -429,25 +427,7 @@ def check_results() -> None:
             ORDER BY display_order, location_name
             """,
         )
-        print_query(
-            conn,
-            "Parimad 3-tunnised tegevusaknad",
-            """
-            SELECT
-                location_name,
-                window_start,
-                window_end,
-                avg_temperature_c,
-                avg_price_eur_mwh,
-                heating_hours,
-                ventilation_hours,
-                recommendation_label,
-                main_reason
-            FROM mart.latest_outdoor_activity_windows
-            ORDER BY avg_price_eur_mwh ASC NULLS LAST, window_start
-            LIMIT 10
-            """,
-        )
+        
         print_query(
             conn,
             "Andmekvaliteedi testid",
