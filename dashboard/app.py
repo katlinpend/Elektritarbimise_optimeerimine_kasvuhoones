@@ -195,11 +195,29 @@ detail_location = st.sidebar.selectbox(
 filt_hourly = hourly[hourly["location_name"].isin(selected_locations)].copy()
 filt_daily = daily[daily["location_name"].isin(selected_locations)].copy() if not daily.empty else pd.DataFrame()
 
+action_price_daily = (
+    filt_hourly[filt_hourly["action_needed"].isin(["heating", "ventilation"])]
+    .groupby(["location_name", "forecast_date"], as_index=False)["price_eur_mwh"]
+    .mean()
+    .rename(columns={"price_eur_mwh": "avg_action_price_eur_mwh"})
+)
+
+filt_daily = filt_daily.merge(
+    action_price_daily,
+    on=["location_name", "forecast_date"],
+    how="left",
+)
+
+filt_daily["avg_price_eur_kwh"] = filt_daily["avg_price_eur_mwh"] / 1000
+filt_daily["avg_action_price_eur_kwh"] = filt_daily["avg_action_price_eur_mwh"] / 1000
 
 # ------------------------------------------------------------------
 # Pealkiri ja viimane laadimine
 # ------------------------------------------------------------------
-st.title("Kasvuhoone elektritarbimise optimeerija")
+st.title("Elektritarbimise optimeerimine kasvuhoones")
+st.markdown(
+    "Millistel tundidel on kasvuhoones vaja kasutada elektrit nõudvaid seadmeid (küte ja ventilatsioon), arvestades hinnangulist sisetemperatuuri, ning kui palju väiksem on hinnanguline elektrikulu võrreldes olukorraga, kus seade töötaks kogu päeva jooksul pidevalt?"
+)
 
 if not latest_run.empty:
     run = latest_run.iloc[0]
@@ -211,140 +229,203 @@ if not latest_run.empty:
 if not filt_daily.empty:
     total_heating = int(filt_daily["heating_hours"].sum())
     total_ventilation = int(filt_daily["ventilation_hours"].sum())
+    total_hours = total_heating + total_ventilation
+
+    avg_action_price = filt_daily["avg_action_price_eur_kwh"].mean()
+    avg_day_price = filt_daily["avg_price_eur_kwh"].mean()
+
     total_rule_cost = filt_daily["rule_based_cost_eur"].sum()
+    total_continuous_cost = filt_daily["avg_price_cost_eur"].sum()
     total_savings = filt_daily["estimated_savings_eur"].sum()
-    avg_price = filt_daily["avg_price_eur_mwh"].mean()
 
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("Kütetunde kokku", f"{total_heating} h")
-    col2.metric("Ventilatsioonitunde kokku", f"{total_ventilation} h")
-    col3.metric("Reeglipõhine kulu", f"{total_rule_cost:.3f} €")
-    col4.metric("Hinnanguline sääst", f"{total_savings:.3f} €")
-    col5.metric("Keskmine börsihind", f"{avg_price:.1f} €/MWh")
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Kütte- ja ventilatsioonitundide arv päevas",
+        f"{total_hours} h",
+        f"Küte {total_heating} h, ventilatsioon {total_ventilation} h",
+    )
+
+    col2.metric(
+        "Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga (€/kWh)",
+        f"{avg_action_price:.4f} €/kWh" if pd.notna(avg_action_price) else "Vajadust ei olnud",
+        f"Päeva keskmine {avg_day_price:.4f} €/kWh",
+    )
+
+    col3.metric(
+        "Hinnanguline päevane elektrikulu (€) reeglipõhises kasutuses vs pidevas kasutuses",
+        f"{total_rule_cost:.2f} €",
+        f"Pidev {total_continuous_cost:.2f} €, sääst {total_savings:.2f} €",
+    )
 
 # ------------------------------------------------------------------
-# KPI 1: Tunnipõhine otsus – kalender (action_needed)
+# KPI 1: Kütte- ja ventilatsioonitundide arv päeva
 # ------------------------------------------------------------------
-st.subheader("KPI 1 – Kütte- ja ventilatsioonitunnid")
+st.subheader("KPI 1 – Kütte- ja ventilatsioonitundide arv päevas")
 
-for loc in selected_locations:
-    loc_data = filt_hourly[filt_hourly["location_name"] == loc].copy()
-    if loc_data.empty:
-        continue
-    day_count = loc_data["forecast_date_label"].nunique()
+if not filt_daily.empty:
+
+    kpi1_data = filt_daily.melt(
+        id_vars=["location_name", "forecast_date"],
+        value_vars=["heating_hours", "ventilation_hours"],
+        var_name="tegevus",
+        value_name="tunnid",
+    )
+
+    kpi1_data["tegevus"] = kpi1_data["tegevus"].map({
+        "heating_hours": "Küte",
+        "ventilation_hours": "Ventilatsioon",
+    })
+
+    kpi1_data["Kuupäev"] = kpi1_data["forecast_date"].dt.strftime("%d.%m")
+
     chart = (
-        alt.Chart(loc_data)
-        .mark_rect(stroke="white", strokeWidth=0.5)
+        alt.Chart(kpi1_data)
+        .mark_bar()
         .encode(
-            x=alt.X("forecast_hour:O", title="Tund",
-                    axis=alt.Axis(labelAngle=0, values=[0, 3, 6, 9, 12, 15, 18, 21])),
-            y=alt.Y("forecast_date_label:N", title="Päev",
-                    sort=alt.SortField("forecast_time", order="ascending")),
-            color=action_color(),
+            y=alt.Y("location_name:N", title="Asukoht"),
+            x=alt.X(
+                "sum(tunnid):Q",
+                title="Tunde",
+                scale=alt.Scale(domain=[0, 24]),
+                axis=alt.Axis(format="d", tickMinStep=1)
+            ),
+            color=alt.Color(
+                "tegevus:N",
+                title="Tegevus",
+                scale=alt.Scale(
+                    domain=["Küte", "Ventilatsioon"],
+                    range=["#e07b39", "#2f9e44"],
+                ),
+            ),
             tooltip=[
-                alt.Tooltip("forecast_time:T", title="Aeg"),
-                alt.Tooltip("temperature_c:Q", title="Välistemp °C", format=".1f"),
-                alt.Tooltip("estimated_inside_temp_c:Q", title="Hinn. sisetemp °C", format=".1f"),
-                alt.Tooltip("action_needed:N", title="Olek"),
-                alt.Tooltip("price_eur_mwh:Q", title="Börsihind €/MWh", format=".2f"),
-                alt.Tooltip("main_reason:N", title="Põhjus"),
+                alt.Tooltip("location_name:N", title="Asukoht"),
+                alt.Tooltip("Kuupäev:N", title="Kuupäev"),
+                alt.Tooltip("tegevus:N", title="Tegevus"),
+                alt.Tooltip("tunnid:Q", title="Tunde"),
             ],
         )
-        .properties(title=loc, height=max(120, 30 * day_count))
+        .properties(height=350)
     )
+
     st.altair_chart(chart, use_container_width=True)
 
 # ------------------------------------------------------------------
-# KPI 2: Börsihind tundide kaupa + action värviga
+# KPI 2: Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga
 # ------------------------------------------------------------------
-st.subheader("KPI 2 – Börsihind kütte- ja ventilatsioonitundidel")
+st.subheader("KPI 2 – Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga")
 
-detail_data = filt_hourly[filt_hourly["location_name"] == detail_location].copy()
-if not detail_data.empty:
-    price_chart = (
-        alt.Chart(detail_data)
-        .mark_bar()
-        .encode(
-            x=alt.X("forecast_time:T", title=None),
-            y=alt.Y("price_eur_mwh:Q", title="Börsihind €/MWh"),
-            color=action_color(),
-            tooltip=[
-                alt.Tooltip("forecast_time:T", title="Aeg"),
-                alt.Tooltip("price_eur_mwh:Q", title="Börsihind €/MWh", format=".2f"),
-                alt.Tooltip("action_needed:N", title="Olek"),
-                alt.Tooltip("estimated_inside_temp_c:Q", title="Hinn. sisetemp °C", format=".1f"),
-            ],
-        )
-        .properties(height=220, title=f"Börsihind tunni kaupa – {detail_location}")
+st.markdown(f"**Asukoht: {detail_location}**")
+
+detail_daily = filt_daily[filt_daily["location_name"] == detail_location].copy()
+
+if not detail_daily.empty:
+    avg_action_price = detail_daily["avg_action_price_eur_kwh"].mean()
+    avg_day_price = detail_daily["avg_price_eur_kwh"].mean()
+
+    st.caption(f"Asukoht: {detail_location}")
+
+if pd.notna(avg_action_price):
+
+    col1, col2 = st.columns(2)
+
+    col1.metric(
+        "Reeglipõhiste tundide keskmine hind",
+        f"{avg_action_price:.4f} €/kWh"
     )
-    st.altair_chart(price_chart, use_container_width=True)
+
+    col2.metric(
+        "Päeva keskmine hind",
+        f"{avg_day_price:.4f} €/kWh"
+    )
+
+else:
+    st.info(
+        f"{detail_location}: valitud perioodil ei olnud kütte- ega ventilatsioonivajadust."
+    )
+
+    st.metric(
+        "Päeva keskmine hind",
+        f"{avg_day_price:.4f} €/kWh"
+    )
 
 # ------------------------------------------------------------------
-# KPI 3: Päevane kulu – reeglipõhine vs pidev tarbimine
+# KPI 3: Hinnanguline päevane elektrikulu reeglipõhises kasutuses vs pidev kasutus
 # ------------------------------------------------------------------
-st.subheader("KPI 3 – Päevane kulu: reeglipõhine vs pidev tarbimine")
+st.subheader("KPI 3 – Hinnanguline päevane elektrikulu reeglipõhises kasutuses vs pidev kasutus")
 
 if not filt_daily.empty:
-    filt_daily["Kuupäev"] = filt_daily["forecast_date"].dt.strftime("%d.%m")
-    cost_data = filt_daily.melt(
+    cost_summary = filt_daily[filt_daily["location_name"] == detail_location].copy()
+    cost_summary["Kuupäev"] = cost_summary["forecast_date"].dt.strftime("%d.%m")
+
+    cost_data = cost_summary.melt(
         id_vars=["location_name", "forecast_date", "Kuupäev"],
-        value_vars=["rule_based_cost_eur", "avg_price_cost_eur"],
-        var_name="kulu_tüüp",
-        value_name="kulu_eur",
+        value_vars=[
+            "rule_based_cost_eur",
+            "avg_price_cost_eur",
+            "estimated_savings_eur",
+        ],
+        var_name="näitaja",
+        value_name="euro",
     )
-    cost_data["kulu_tüüp"] = cost_data["kulu_tüüp"].map({
+
+    cost_data["näitaja"] = cost_data["näitaja"].map({
         "rule_based_cost_eur": "Reeglipõhine kulu",
-        "avg_price_cost_eur": "Pidev tarbimine",
+        "avg_price_cost_eur": "Pidev kasutus",
+        "estimated_savings_eur": "Sääst",
     })
-    cost_data["kulu_eur"] = pd.to_numeric(cost_data["kulu_eur"], errors="coerce")
 
     cost_chart = (
-        alt.Chart(cost_data[cost_data["location_name"] == detail_location])
+        alt.Chart(cost_data)
         .mark_bar()
         .encode(
             x=alt.X("Kuupäev:N", title="Kuupäev"),
-            y=alt.Y("kulu_eur:Q", title="Kulu (€)", scale=alt.Scale(zero=True)),
-            color=alt.Color("kulu_tüüp:N", title="Tarbimisviis",
-                            scale=alt.Scale(
-                                domain=["Reeglipõhine kulu", "Pidev tarbimine"],
-                                range=["#2f9e44", "#adb5bd"]
-                            )),
-            xOffset="kulu_tüüp:N",
+            y=alt.Y("euro:Q", title="Eurot (€)", scale=alt.Scale(zero=True)),
+            color=alt.Color("näitaja:N", title="Näitaja"),
+            xOffset="näitaja:N",
             tooltip=[
                 alt.Tooltip("Kuupäev:N", title="Kuupäev"),
-                alt.Tooltip("kulu_tüüp:N", title="Tarbimisviis"),
-                alt.Tooltip("kulu_eur:Q", title="Kulu €", format=".4f"),
+                alt.Tooltip("näitaja:N", title="Näitaja"),
+                alt.Tooltip("euro:Q", title="€", format=".2f"),
             ],
         )
-        .properties(height=220, title=f"Päevane energiakulu – {detail_location}")
+        .properties(
+            height=300,
+            title=f"Päevane kulu ja sääst – {detail_location}",
+        )
     )
+
     st.altair_chart(cost_chart, use_container_width=True)
 
     # Päevakoond tabel
     st.dataframe(
         filt_daily[[
-            "location_name", "forecast_date", "heating_hours", "ventilation_hours",
-            "avg_price_eur_mwh", "rule_based_cost_eur", "avg_price_cost_eur",
-            "estimated_savings_eur", "weather_risk_level",
+            "location_name",
+            "forecast_date",
+            "heating_hours",
+            "ventilation_hours",
+            "rule_based_cost_eur",
+            "avg_price_cost_eur",
+            "estimated_savings_eur",
+            "avg_price_eur_kwh",
         ]].rename(columns={
             "location_name": "Asukoht",
             "forecast_date": "Kuupäev",
-            "heating_hours": "Kütetunde",
+            "heating_hours": "Küttetunde",
             "ventilation_hours": "Vent. tunde",
-            "avg_price_eur_mwh": "Kesk. hind €/MWh",
             "rule_based_cost_eur": "Reeglipõhine kulu €",
-            "avg_price_cost_eur": "Pidev tarbimine €",
+            "avg_price_cost_eur": "Pidev kasutus €",
             "estimated_savings_eur": "Sääst €",
-            "weather_risk_level": "Energiavajadus",
+            "avg_price_eur_kwh": "Päeva keskmine hind €/kWh",
         }),
         use_container_width=True,
         hide_index=True,
     )
 
-
 # ------------------------------------------------------------------
 # Temperatuuri detailvaade
 # ------------------------------------------------------------------
+detail_data = filt_hourly[filt_hourly["location_name"] == detail_location].copy()
 st.subheader(f"Temperatuur – {detail_location}")
 
 if not detail_data.empty:
