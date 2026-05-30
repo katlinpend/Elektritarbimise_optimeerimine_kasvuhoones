@@ -288,7 +288,11 @@ if not filt_daily.empty:
                 "sum(tunnid):Q",
                 title="Tunde",
                 scale=alt.Scale(domain=[0, 24]),
-                axis=alt.Axis(format="d", tickMinStep=1)
+                axis=alt.Axis(
+                    format="d",
+                    tickMinStep=1,
+                    grid=False,
+                ),
             ),
             color=alt.Color(
                 "tegevus:N",
@@ -378,11 +382,42 @@ if not filt_daily.empty:
     cost_chart = (
         alt.Chart(cost_data)
         .mark_bar()
-        .encode(
-            x=alt.X("Kuupäev:N", title="Kuupäev"),
-            y=alt.Y("euro:Q", title="Eurot (€)", scale=alt.Scale(zero=True)),
-            color=alt.Color("näitaja:N", title="Näitaja"),
-            xOffset="näitaja:N",
+         .encode(
+            y=alt.Y(
+                "näitaja:N",
+                title=None,
+                sort=[
+                    "Pidev kasutus",
+                    "Reeglipõhine kulu",
+                    "Sääst",
+                ],
+            ),
+            x=alt.X(
+                "euro:Q",
+                title="Eurot (€)",
+                scale=alt.Scale(zero=True),
+                axis=alt.Axis(
+                    format="d",
+                    tickMinStep=1,
+                    grid=False,
+                ),
+            ),
+            color=alt.Color(
+                "näitaja:N",
+                title="Näitaja",
+                scale=alt.Scale(
+                    domain=[
+                        "Pidev kasutus",
+                        "Reeglipõhine kulu",
+                        "Sääst",
+                    ],
+                    range=[
+                        "#1f77b4",  # sinine - Pidev kasutus
+                        "#e07b39",  # oranž - Reeglipõhine kulu
+                        "#2ca02c",  # roheline - Sääst
+                    ],
+                ),
+            ),
             tooltip=[
                 alt.Tooltip("Kuupäev:N", title="Kuupäev"),
                 alt.Tooltip("näitaja:N", title="Näitaja"),
@@ -398,8 +433,13 @@ if not filt_daily.empty:
     st.altair_chart(cost_chart, use_container_width=True)
 
     # Päevakoond tabel
+    filt_daily_display = filt_daily.copy()
+    filt_daily_display["forecast_date"] = (
+        filt_daily_display["forecast_date"]
+        .dt.strftime("%d.%m.%Y")
+    )
     st.dataframe(
-        filt_daily[[
+        filt_daily_display[[
             "location_name",
             "forecast_date",
             "heating_hours",
@@ -430,31 +470,84 @@ st.subheader(f"Temperatuur – {detail_location}")
 
 if not detail_data.empty:
     temp_base = alt.Chart(detail_data)
-    outside = temp_base.mark_line(color="#1f77b4", strokeWidth=2).encode(
-        x=alt.X("forecast_time:T", title=None),
-        y=alt.Y("temperature_c:Q", title="Temperatuur °C"),
+
+    outside = temp_base.mark_line(
+        color="#1f77b4",
+        strokeWidth=3,
+    ).encode(
+        x=alt.X(
+            "forecast_time:T",
+            title="Kellaaeg",
+            axis=alt.Axis(
+                format="%H",
+                tickCount=24,
+                labelAngle=0,
+                grid=False,
+            ),
+        ),
+        y=alt.Y(
+            "temperature_c:Q",
+            title="Temperatuur °C",
+            axis=alt.Axis(grid=False),
+        ),
         tooltip=[
-            alt.Tooltip("forecast_time:T", title="Aeg"),
+            alt.Tooltip("forecast_time:T", title="Aeg", format="%d.%m %H:%M"),
             alt.Tooltip("temperature_c:Q", title="Välistemp °C", format=".1f"),
             alt.Tooltip("estimated_inside_temp_c:Q", title="Hinn. sisetemp °C", format=".1f"),
         ],
     )
-    inside = temp_base.mark_line(color="#e07b39", strokeWidth=2, strokeDash=[4, 2]).encode(
-        x="forecast_time:T",
-        y="estimated_inside_temp_c:Q",
+
+    inside = temp_base.mark_line(
+        color="#e07b39",
+        strokeWidth=3,
+    ).encode(
+        x=alt.X(
+            "forecast_time:T",
+            title="Kellaaeg",
+            axis=alt.Axis(
+                format="%H",
+                tickCount=24,
+                labelAngle=0,
+                grid=False,
+            ),
+        ),
+        y=alt.Y(
+            "estimated_inside_temp_c:Q",
+            title="Temperatuur °C",
+            axis=alt.Axis(grid=False),
+        ),
+        tooltip=[
+            alt.Tooltip("forecast_time:T", title="Aeg", format="%d.%m %H:%M"),
+            alt.Tooltip("estimated_inside_temp_c:Q", title="Hinn. sisetemp °C", format=".1f"),
+        ],
     )
+
     rule_low = alt.Chart(pd.DataFrame({"y": [12]})).mark_rule(
-        color="red", strokeDash=[3, 3], opacity=0.5
-    ).encode(y="y:Q")
+        color="#999999",
+        strokeWidth=1,
+        opacity=0.6,
+    ).encode(
+        y="y:Q",
+    )
+
     rule_high = alt.Chart(pd.DataFrame({"y": [28]})).mark_rule(
-        color="orange", strokeDash=[3, 3], opacity=0.5
-    ).encode(y="y:Q")
+        color="#999999",
+        strokeWidth=1,
+        opacity=0.6,
+    ).encode(
+        y="y:Q",
+    )
 
     st.altair_chart(
         (outside + inside + rule_low + rule_high).properties(height=220),
         use_container_width=True,
     )
-    st.caption("Sinine joon – välistemp | Oranž joon – hinnanguline sisetemp (välistemp + 5°C) | Punane piir – 12°C | Oranž piir – 28°C")
+
+    st.caption(
+        "Sinine joon – välistemperatuur | "
+        "Oranž joon – hinnanguline sisetemperatuur (välistemp + 5°C) | "
+        "Hallid horisontaaljooned – küttepiir 12°C ja ventilatsioonipiir 28°C"
+    )
 
 # ------------------------------------------------------------------
 # Andmekvaliteedi testid
