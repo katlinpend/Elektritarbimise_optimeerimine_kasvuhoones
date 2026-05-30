@@ -86,13 +86,11 @@ FORECAST_DAYS=2
 
 ## Tehnoloogiad
 
-- Python
-- PostgreSQL / Supabase
-- SQL
-- Docker
-- cron
-- GitHub
-- Metabase / Power BI
+- Dashboard: Phyton + Streamlit + Altair
+- Andmebaas: PostgreSQL
+- Andmetöötlus: Phyton + SQL
+- Konteinerid ja ajastus: Docker + cron
+- Versioonihaldus: GitHub
 
 ---
 
