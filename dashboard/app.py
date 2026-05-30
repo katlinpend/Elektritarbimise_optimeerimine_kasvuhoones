@@ -211,6 +211,30 @@ filt_daily = filt_daily.merge(
 filt_daily["avg_price_eur_kwh"] = filt_daily["avg_price_eur_mwh"] / 1000
 filt_daily["avg_action_price_eur_kwh"] = filt_daily["avg_action_price_eur_mwh"] / 1000
 
+available_dates = []
+if not filt_daily.empty:
+    available_dates = sorted(filt_daily["forecast_date"].dt.date.unique())
+
+selected_date = None
+if available_dates:
+    selected_date = st.sidebar.selectbox(
+        "KPI kuupäev",
+        options=available_dates,
+        format_func=lambda value: pd.Timestamp(value).strftime("%d.%m.%Y"),
+    )
+
+if selected_date is not None:
+    filt_daily_for_kpi = filt_daily[
+        (filt_daily["forecast_date"].dt.date == selected_date)
+        & (filt_daily["location_name"] == detail_location)
+    ].copy()
+    filt_daily_for_charts = filt_daily[
+        filt_daily["forecast_date"].dt.date == selected_date
+    ].copy()
+else:
+    filt_daily_for_kpi = pd.DataFrame()
+    filt_daily_for_charts = filt_daily.copy()
+
 # ------------------------------------------------------------------
 # Pealkiri ja viimane laadimine
 # ------------------------------------------------------------------
@@ -224,19 +248,19 @@ if not latest_run.empty:
     st.caption(f"Viimane laadimine: {run['fetched_at']} | {run['message']}")
 
 # ------------------------------------------------------------------
-# KPI mõõdikud (päevakoond, kõik valitud asukohad kokku)
+# KPI mõõdikud (valitud asukoht ja kuupäev)
 # ------------------------------------------------------------------
-if not filt_daily.empty:
-    total_heating = int(filt_daily["heating_hours"].sum())
-    total_ventilation = int(filt_daily["ventilation_hours"].sum())
+if not filt_daily_for_kpi.empty:
+    total_heating = int(filt_daily_for_kpi["heating_hours"].sum())
+    total_ventilation = int(filt_daily_for_kpi["ventilation_hours"].sum())
     total_hours = total_heating + total_ventilation
 
-    avg_action_price = filt_daily["avg_action_price_eur_kwh"].mean()
-    avg_day_price = filt_daily["avg_price_eur_kwh"].mean()
+    avg_action_price = filt_daily_for_kpi["avg_action_price_eur_kwh"].mean()
+    avg_day_price = filt_daily_for_kpi["avg_price_eur_kwh"].mean()
 
-    total_rule_cost = filt_daily["rule_based_cost_eur"].sum()
-    total_continuous_cost = filt_daily["avg_price_cost_eur"].sum()
-    total_savings = filt_daily["estimated_savings_eur"].sum()
+    total_rule_cost = filt_daily_for_kpi["rule_based_cost_eur"].sum()
+    total_continuous_cost = filt_daily_for_kpi["avg_price_cost_eur"].sum()
+    total_savings = filt_daily_for_kpi["estimated_savings_eur"].sum()
 
     col1, col2, col3 = st.columns(3)
 
@@ -263,9 +287,9 @@ if not filt_daily.empty:
 # ------------------------------------------------------------------
 st.subheader("KPI 1 – Kütte- ja ventilatsioonitundide arv päevas")
 
-if not filt_daily.empty:
+if not filt_daily_for_charts.empty:
 
-    kpi1_data = filt_daily.melt(
+    kpi1_data = filt_daily_for_charts.melt(
         id_vars=["location_name", "forecast_date"],
         value_vars=["heating_hours", "ventilation_hours"],
         var_name="tegevus",
@@ -321,7 +345,9 @@ st.subheader("KPI 2 – Keskmine elektrihind reeglipõhise kasutuse tundidel võ
 
 st.markdown(f"**Asukoht: {detail_location}**")
 
-detail_daily = filt_daily[filt_daily["location_name"] == detail_location].copy()
+detail_daily = filt_daily_for_kpi.copy()
+avg_action_price = pd.NA
+avg_day_price = pd.NA
 
 if not detail_daily.empty:
     avg_action_price = detail_daily["avg_action_price_eur_kwh"].mean()
@@ -358,8 +384,8 @@ else:
 # ------------------------------------------------------------------
 st.subheader("KPI 3 – Hinnanguline päevane elektrikulu reeglipõhises kasutuses vs pidev kasutus")
 
-if not filt_daily.empty:
-    cost_summary = filt_daily[filt_daily["location_name"] == detail_location].copy()
+if not filt_daily_for_kpi.empty:
+    cost_summary = filt_daily_for_kpi.copy()
     cost_summary["Kuupäev"] = cost_summary["forecast_date"].dt.strftime("%d.%m")
 
     cost_data = cost_summary.melt(
@@ -433,7 +459,7 @@ if not filt_daily.empty:
     st.altair_chart(cost_chart, use_container_width=True)
 
     # Päevakoond tabel
-    filt_daily_display = filt_daily.copy()
+    filt_daily_display = filt_daily_for_charts.copy()
     filt_daily_display["forecast_date"] = (
         filt_daily_display["forecast_date"]
         .dt.strftime("%d.%m.%Y")
