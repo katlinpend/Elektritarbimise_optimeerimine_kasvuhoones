@@ -158,7 +158,7 @@ test_cases AS (
     UNION ALL
     
       SELECT
-        'price_not_null' AS test_name,
+        'price_missing_share_under_20_pct' AS test_name,
         CASE
             WHEN (
                 SELECT COUNT(*) FILTER (WHERE w.price_eur_mwh IS NULL)::float
@@ -169,7 +169,7 @@ test_cases AS (
                 THEN 1
             ELSE 0
         END AS failed_rows,
-        'Üle 20% tundidest on elektrihind puudu (Elering API probleem?).' AS message
+        'Puuduva elektrihinnaga staging-ridu tohib viimases laadimises olla kuni 20%.' AS message
     UNION ALL
     
     SELECT
