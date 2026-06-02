@@ -71,13 +71,51 @@ Märkus: kui andmebaasis leidub vanast näidisloogikast pärit `outdoor_activity
 ## 6) Andmevoog
 ```mermaid
 flowchart LR
-    A[Open-Meteo API] --> B[Python ingest]
-    C[Elering API] --> B
-    B --> D[(staging)]
-    D --> E[SQL transformatsioonid]
-    E --> F[(mart)]
-    F --> G[Streamlit dashboard]
-    F --> H[Andmekvaliteedi testid]
+    subgraph External["Välised andmeallikad"]
+        OM["Open-Meteo Forecast API<br/>temperature_2m"]
+        EL["Elering NPS API<br/>price EUR/MWh"]
+    end
+
+    subgraph Docker["Docker Compose keskkond"]
+        Scheduler["scheduler konteiner<br/>cron"]
+        Pipeline["pipeline konteiner<br/>scripts/run_pipeline.py"]
+
+        subgraph DB["PostgreSQL andmebaas"]
+            Runs["staging.pipeline_runs"]
+            Raw["staging.weather_hourly_raw"]
+            Dim["mart.dim_location"]
+            Fact["mart.fact_weather_forecast"]
+            Hourly["mart.hourly_weather_score"]
+            Daily["mart.daily_weather_summary"]
+            Quality["quality.test_results"]
+        end
+
+        Dashboard["dashboard konteiner<br/>Streamlit + Pandas + Altair"]
+    end
+
+    User["Kasutaja brauser<br/>localhost:8501"]
+
+    Scheduler --> Pipeline
+    OM --> Pipeline
+    EL --> Pipeline
+
+    Pipeline --> Runs
+    Pipeline --> Raw
+    Pipeline --> Dim
+
+    Raw --> Fact
+    Dim --> Fact
+    Fact --> Hourly
+    Hourly --> Daily
+
+    Fact --> Quality
+    Hourly --> Quality
+    Daily --> Quality
+
+    Hourly --> Dashboard
+    Daily --> Dashboard
+    Quality --> Dashboard
+    Dashboard --> User
 ```
 
 ## 7) Tehnoloogiad
