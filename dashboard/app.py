@@ -22,8 +22,8 @@ st.set_page_config(
 ACTION_DOMAIN = ["heating", "ventilation", "none"]
 ACTION_COLORS = ["#e07b39", "#2f9e44", "#adb5bd"]
 ACTION_LABELS = {
-    "heating": "Küte vajalik",
-    "ventilation": "Ventilatsioon vajalik",
+    "heating": "Küte",
+    "ventilation": "Ventilatsioon",
     "none": "Temperatuur sobiv",
 }
 WEEKDAY_LABELS = ["E", "T", "K", "N", "R", "L", "P"]
@@ -250,6 +250,10 @@ if not latest_run.empty:
 # ------------------------------------------------------------------
 # KPI mõõdikud (valitud asukoht ja kuupäev)
 # ------------------------------------------------------------------
+if selected_date is not None:
+    selected_date_label = pd.Timestamp(selected_date).strftime("%d.%m.%Y")
+    st.info(f"Asukoht: {detail_location} | Kuupäev: {selected_date_label}")
+
 if not filt_daily_for_kpi.empty:
     total_heating = int(filt_daily_for_kpi["heating_hours"].sum())
     total_ventilation = int(filt_daily_for_kpi["ventilation_hours"].sum())
@@ -265,27 +269,27 @@ if not filt_daily_for_kpi.empty:
     col1, col2, col3 = st.columns(3)
 
     col1.metric(
-        "Kütte- ja ventilatsioonitundide arv päevas",
+        "Tegevustunnid",
         f"{total_hours} h",
         f"Küte {total_heating} h, ventilatsioon {total_ventilation} h",
     )
 
     col2.metric(
-        "Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga (€/kWh)",
-        f"{avg_action_price:.4f} €/kWh" if pd.notna(avg_action_price) else "Vajadust ei olnud",
+        "Reeglipõhine keskmine elektrihind",
+        f"{avg_action_price:.4f} €/kWh" if pd.notna(avg_action_price) else "Vajadus puudub",
         f"Päeva keskmine {avg_day_price:.4f} €/kWh",
     )
 
     col3.metric(
-        "Hinnanguline päevane elektrikulu (€) reeglipõhises kasutuses vs pidevas kasutuses",
+        "Päevane kulu",
         f"{total_rule_cost:.2f} €",
         f"Pidev {total_continuous_cost:.2f} €, sääst {total_savings:.2f} €",
     )
 
 # ------------------------------------------------------------------
-# KPI 1: Kütte- ja ventilatsioonitundide arv päeva
+# KPI 1: Kütte- ja ventilatsioonitundide arv päevas
 # ------------------------------------------------------------------
-st.subheader("KPI 1 – Kütte- ja ventilatsioonitundide arv päevas")
+st.subheader("KPI 1 – Tegevustunnid")
 
 if not filt_daily_for_charts.empty:
 
@@ -341,9 +345,7 @@ if not filt_daily_for_charts.empty:
 # ------------------------------------------------------------------
 # KPI 2: Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga
 # ------------------------------------------------------------------
-st.subheader("KPI 2 – Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga")
-
-st.markdown(f"**Asukoht: {detail_location}**")
+st.subheader("KPI 2 – Reeglipõhine keskmine elektrihind")
 
 detail_daily = filt_daily_for_kpi.copy()
 avg_action_price = pd.NA
@@ -353,19 +355,17 @@ if not detail_daily.empty:
     avg_action_price = detail_daily["avg_action_price_eur_kwh"].mean()
     avg_day_price = detail_daily["avg_price_eur_kwh"].mean()
 
-    st.caption(f"Asukoht: {detail_location}")
-
 if pd.notna(avg_action_price):
 
     col1, col2 = st.columns(2)
 
     col1.metric(
-        "Reeglipõhiste tundide keskmine hind",
+        "Reeglipõhine keskmine elektrihind",
         f"{avg_action_price:.4f} €/kWh"
     )
 
     col2.metric(
-        "Päeva keskmine hind",
+        "Päeva keskmine elektrihind",
         f"{avg_day_price:.4f} €/kWh"
     )
 
@@ -382,7 +382,7 @@ else:
 # ------------------------------------------------------------------
 # KPI 3: Hinnanguline päevane elektrikulu reeglipõhises kasutuses vs pidev kasutus
 # ------------------------------------------------------------------
-st.subheader("KPI 3 – Hinnanguline päevane elektrikulu reeglipõhises kasutuses vs pidev kasutus")
+st.subheader("KPI 3 – Päevane kulu")
 
 if not filt_daily_for_kpi.empty:
     cost_summary = filt_daily_for_kpi.copy()
