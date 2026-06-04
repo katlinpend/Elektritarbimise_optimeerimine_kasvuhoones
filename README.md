@@ -222,9 +222,9 @@ Rollide jaotus on kirjeldatud failis:
 docs/arhitektuur.md
 ```
 1. Sirja Hass
-2. Ave Kaare
-3. Piret Sults
-4. Kätlin Pendarov
+2. Piret Sults
+3. Ave Kaare
+5. Kätlin Pendarov
 
 ---
 
