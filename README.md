@@ -209,10 +209,13 @@ http://localhost:8501
 ## Projekti struktuur
 
 ```text
-docs/           dokumentatsioon
-scripts/        Python töövoog
-dashboard/      visualiseerimine
-init/           andmebaasi objektid
+- `docs/` – projekti dokumentatsioon (arhitektuur, töö edenemine)
+- `scripts/` – andmete sissevõtt, transformatsioonid, kvaliteeditestid ja scheduler
+- `dashboard/` – Streamlit dashboard ja visualiseerimised
+- `init/` – andmebaasi objektide loomise SQL skriptid
+- `.env.example` – keskkonnamuutujate näidisfail
+- `compose.yml` – Docker Compose konfiguratsioon
+- `README.md` – projekti dokumentatsioon ja käivitusjuhend
 ```
 
 ---
