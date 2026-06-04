@@ -237,9 +237,10 @@ docs/arhitektuur.md
 
 ---
 
-## Kokkuvõte, puudused ja võimalikud edasiarendused
+## Kokkuvõte
 
-Kokkuvõttes valmis projekti käigus täielik andmetöövoog kasvuhoone elektritarbimise optimeerimise hindamiseks. Valmis said:
+Kokkuvõttes valmis projekti käigus täielik andmetöövoog kasvuhoone elektritarbimise optimeerimise hindamiseks. 
+Valmis said:
 
 - Open-Meteo Forecast API ja Elering NPS API andmete automaatne sissevõtt.
 - PostgreSQL andmebaasi staging- ja mart-kihi andmemudel.
@@ -250,7 +251,9 @@ Kokkuvõttes valmis projekti käigus täielik andmetöövoog kasvuhoone elektrit
 - Cron-põhine automaatne andmete uuendamine.
 - Projekti dokumentatsioon ja käivitusjuhised.
 
-Puudused:
+---
+
+## Puudused
 
 - Kasvuhoone sisetemperatuuri hinnatakse lihtsustatud mudeliga (välistemperatuur + 5°C), mitte tegelike sensoriandmete põhjal.
 - Küte ja ventilatsioon on modelleeritud lihtsustatud loogikaga ega arvesta seadmete erinevat võimsust või töörežiime.
@@ -258,7 +261,9 @@ Puudused:
 - Eleringi day-ahead hinnad ei kata alati kogu ilmaennustuse perioodi, mistõttu kasutatakse ainult neid ridu, mille jaoks on elektrihind olemas.
 - Dashboard keskendub peamiselt päevataseme KPI-dele ning ei sisalda detailsemaid analüütilisi vaateid.
 
-Mis edasi? Kui projekti edasi arendada, võiks:
+---
+
+## Võimalikud edasiarendused
 
 - kasutada päris kasvuhoone sensoriandmeid sisetemperatuuri hindamise asemel;
 - lisada niiskuse, päikesekiirguse ja muude keskkonnanäitajate mõju;
