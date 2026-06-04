@@ -146,11 +146,12 @@ flowchart LR
 
 ## Planeeritud töövoog
 
-1. Python script küsib API-dest andmed
-2. Andmed salvestatakse PostgreSQL andmebaasi
-3. SQL transformatsioon valmistab andmed analüüsiks ette
-4. Dashboard kuvab soovitused ja hinnainfo
-5. cron käivitab andmete uuendamise automaatselt
+1. Python pipeline pärib ilmaandmed Open-Meteo API-st ja elektrihinnad Elering NPS API-st.
+2. Toorandmed salvestatakse PostgreSQL andmebaasi staging-kihti.
+3. SQL transformatsioonid loovad mart-kihi tabelid ning arvutavad KPI-de jaoks vajalikud näitajad.
+4. Andmekvaliteedi testid kontrollivad andmete korrektsust ja transformatsioonide tulemusi.
+5. Streamlit dashboard kuvab KPI-d, visualiseerimised ja kvaliteeditestide tulemused.
+6. Cron scheduler käivitab andmete uuendamise automaatselt.
 
 ---
 
