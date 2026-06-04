@@ -173,13 +173,13 @@ flowchart LR
 │   ├── 01_transform.sql
 │   ├── 02_quality_tests.sql
 │   ├── 03_check_results.sql
-│   ├── requirements.txt
 │   ├── run_pipeline.py
 │   └── start_cron.sh
 ├── .env.example
 ├── .gitignore
 ├── Dockerfile.app
 ├── README.md
+├── requirements.txt
 └── compose.yml
 ```
 
@@ -272,4 +272,3 @@ Kui projekti edasi arendada, võiks:
 - lisada dashboardile rohkem filtreid ja võrdlusvaateid;
 - lisada automaatsed teavitused kõrge elektrihinna või suure energiavajaduse korral;
 - kasutada pikemaajalisi prognoose ja ajaloolisi andmeid trendide analüüsimiseks.
-

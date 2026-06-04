@@ -1,1 +1,6 @@
-# Väliseid sõltuvusi pole vaja (kasutab Python standardteeki).
+psycopg2-binary==2.9.10
+requests==2.32.3
+pandas==2.3.3
+streamlit==1.51.0
+altair==5.5.0
+streamlit-autorefresh==1.0.1
