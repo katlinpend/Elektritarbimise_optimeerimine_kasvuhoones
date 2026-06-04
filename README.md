@@ -208,15 +208,15 @@ http://localhost:8501
 
 ## Projekti struktuur
 
-```text
-- `docs/` – projekti dokumentatsioon (arhitektuur, töö edenemine)
-- `scripts/` – andmete sissevõtt, transformatsioonid, kvaliteeditestid ja scheduler
-- `dashboard/` – Streamlit dashboard ja visualiseerimised
-- `init/` – andmebaasi objektide loomise SQL skriptid
-- `.env.example` – keskkonnamuutujate näidisfail
-- `compose.yml` – Docker Compose konfiguratsioon
-- `README.md` – projekti dokumentatsioon ja käivitusjuhend
-```
+| Kaust / fail | Kirjeldus |
+|-------------|-----------|
+| `docs/` | Projekti dokumentatsioon (arhitektuur, töö edenemine) |
+| `scripts/` | Andmete sissevõtt, transformatsioonid, kvaliteeditestid ja scheduler |
+| `dashboard/` | Streamlit dashboard ja visualiseerimised |
+| `init/` | Andmebaasi objektide loomise SQL skriptid |
+| `.env.example` | Keskkonnamuutujate näidisfail |
+| `compose.yml` | Docker Compose konfiguratsioon |
+| `README.md` | Projekti dokumentatsioon ja käivitusjuhend |
 
 ---
 
