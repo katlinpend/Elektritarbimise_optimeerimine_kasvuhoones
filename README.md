@@ -181,8 +181,8 @@ flowchart LR
 ├── .gitignore
 ├── Dockerfile.app
 ├── README.md
-├── requirements.txt
-└── compose.yml
+├── compose.yml
+└── requirements.txt
 ```
 
 ---
