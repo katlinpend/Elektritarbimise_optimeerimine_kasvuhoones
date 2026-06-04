@@ -89,8 +89,8 @@ Projekt modelleerib kasvuhoone otsuseid 5 Eesti asukoha põhjal:
 
 Põhiandmeallikad:
 
-- **Open-Meteo Forecast API** – välistemperatuur ja tunniandmed
-- **Elering NPS API** (`/api/nps/price`) – elektri börsihind tunni kaupa
+- **Open-Meteo Forecast API** – tunnipõhine välistemperatuuri prognoos
+- **Elering NPS API** – tunnipõhine elektri spot-hind Eestis
 
 Oluline piirang:
 
