@@ -289,7 +289,7 @@ if not filt_daily_for_kpi.empty:
 # ------------------------------------------------------------------
 # KPI 1: Kütte- ja ventilatsioonitundide arv päevas
 # ------------------------------------------------------------------
-st.subheader("KPI 1 – Tegevustunnid")
+st.subheader("KPI 1 – Tegevustunnid (kõik asukohad)")
 
 if not filt_daily_for_charts.empty:
 
@@ -452,7 +452,7 @@ if not filt_daily_for_kpi.empty:
         )
         .properties(
             height=300,
-            title=f"Päevane kulu ja sääst – {detail_location}",
+            title=f"Päevane kulu ja sääst",
         )
     )
 
@@ -492,7 +492,7 @@ if not filt_daily_for_kpi.empty:
 # Temperatuuri detailvaade
 # ------------------------------------------------------------------
 detail_data = filt_hourly[filt_hourly["location_name"] == detail_location].copy()
-st.subheader(f"Temperatuur – {detail_location}")
+st.subheader("Temperatuur")
 
 if not detail_data.empty:
     temp_base = alt.Chart(detail_data)

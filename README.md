@@ -58,21 +58,20 @@ Projekt sisaldab automatiseeritud andmekvaliteedi teste, mis käivitatakse pära
 
 | Test | Eesmärk |
 |--------|--------|
-| dim_location_has_active_rows | Vähemalt üks aktiivne asukoht on olemas |
-| active_locations_have_coordinates | Aktiivsetel asukohtadel on korrektsed koordinaadid |
-| weather_raw_has_rows | Viimases laadimises on toorandmeid |
-| latest_run_has_active_locations | Kõigi aktiivsete asukohtade kohta on viimases laadimises andmed olemas |
-| forecast_time_not_null | Prognoosiaeg ei ole tühi |
-| forecast_time_not_stale | Prognoosiaeg ei ole aegunud |
-| unique_location_time_per_run | Duplikaatkirjed puuduvad |
-| temperature_reasonable | Temperatuur jääb vahemikku -50°C kuni 50°C |
-| price_coverage_exists | Elektrihinna andmed on olemas |
-| mart_price_not_null | Mart-kihi tabelis ei ole puuduvaid elektrihindu |
-| mart_hourly_score_has_rows | Tunnipõhine skooritabel sisaldab andmeid |
-| action_and_label_consistent | Tegevus ja kirjeldus on omavahel kooskõlas |
-| combined_score_range | Arvutatud skoor jääb lubatud vahemikku |
-| mart_daily_summary_has_rows | Päevakoondtabel sisaldab andmeid |
-
+| `dim_location_has_active_rows` | Vähemalt üks aktiivne asukoht on olemas |
+| `active_locations_have_coordinates` | Aktiivsetel asukohtadel peavad olema korrektsed koordinaadid |
+| `weather_raw_has_rows` | Viimases edukas laadimises peab olema vähemalt üks ilmaandmete rida |
+| `latest_run_has_active_locations` | Kõigi aktiivsete asukohtade kohta peavad viimases laadimises andmed olemas olema |
+| `forecast_time_not_null` | Prognoosi aeg ei tohi puududa |
+| `forecast_time_not_stale` | Vähemalt mõni prognoositund peab olema tulevikus |
+| `unique_location_time_per_run` | Sama käivituse, asukoha ja tunni kohta tohib olla ainult üks rida |
+| `temperature_reasonable` | Temperatuur peab jääma vahemikku −50°C kuni 50°C |
+| `price_coverage_exists` | Vähemalt mõne tunni elektrihind peab olema olemas |
+| `mart_price_not_null` | Mart-kihi faktitabelis ei tohi elektrihind olla NULL |
+| `mart_hourly_score_has_rows` | Tunnipõhine skooritabel peab sisaldama ridu |
+| `action_and_label_consistent` | `action_needed` ja `suitability_label` peavad omavahel vastama |
+| `combined_score_range` | Kombineeritud sobivuse skoor peab jääma vahemikku 0 kuni 100 |
+| `mart_daily_summary_has_rows` | Päevane koondtabel peab sisaldama näidikulaua ridu |
 Viimases kontrollis läbisid kõik testid edukalt (`failed_tests = 0`).
 
 ---
