@@ -10,8 +10,8 @@ Millistel tundidel on kasvuhoones vaja kasutada elektrit nõudvaid seadmeid (kü
 
 ## Projekti allikas ja töörepo
 
-- Kursuse juhised ja näidismaterjalid pärinevad repost: `https://github.com/KristoR/ut-andmeinseneeria-2026`
-- Aktiivne töö toimub selles repos: `https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones`
+- Kursuse juhised ja näidismaterjalid: https://github.com/KristoR/ut-andmeinseneeria-2026
+- Projekti töörepo: https://github.com/sirja-hass/Elektritarbimise_optimeerimine_kasvuhoones
 
 Projekt kasutab elektri börsihindu ja ilmaandmeid, et leida soodsaimad ajad elektri tarbimiseks.
 
@@ -19,7 +19,7 @@ Projekt kasutab elektri börsihindu ja ilmaandmeid, et leida soodsaimad ajad ele
 
 ## Projekti ulatus
 
-Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi katab tervikliku andmetöövoo alates andmete kogumisest kuni visualiseerimiseni.
+Projekt on tehtud kursuse **UT andmeinseneride täiendkoolitusprogramm 2026** projektitöö nõuete järgi ning katab tervikliku andmetöövoo alates andmete kogumisest kuni visualiseerimiseni.
 
 1. Andmete sissevõtt (ingest) Open-Meteo Forecast API-st ja Elering NPS API-st.
 2. Andmete transformatsioon, mille käigus arvutatakse hinnanguline kasvuhoone sisetemperatuur, energiavajadus ning elektrikulu näitajad.
@@ -127,19 +127,22 @@ FORECAST_DAYS=2
 ```mermaid
 flowchart LR
     A[Open-Meteo API]
-    C[Elering API]
+    B[Elering NPS API]
 
-    A --> B[Pipeline ingest]
-    C --> B
+    A --> C[Python ingest]
+    B --> C
 
-    B --> D[(staging)]
+    C --> D[(staging)]
 
-    D --> E[SQL transform]
+    D --> E[SQL transformatsioonid]
 
     E --> F[(mart)]
 
-    F --> G[Dashboard]
-    F --> H[Quality tests]
+    F --> G[Streamlit Dashboard]
+
+    F --> H[Andmekvaliteedi testid]
+
+    H --> I[(quality.test_results)]
 ```
 
 ---
@@ -230,7 +233,7 @@ docs/arhitektuur.md
 1. Sirja Hass
 2. Piret Sults
 3. Ave Kaare
-5. Kätlin Pendarov
+4. Kätlin Pendarov
 
 ---
 
