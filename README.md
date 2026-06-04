@@ -65,7 +65,7 @@ Projekt sisaldab automatiseeritud andmekvaliteedi teste, mis käivitatakse pära
 | weather_raw_has_forecast_time | Prognoosiaeg ei ole tühi |
 | unique_location_time_per_run | Duplikaatkirjed puuduvad |
 | temperature_reasonable | Temperatuur jääb mõistlikku vahemikku |
-| price_coverage_exists | Elektrihinna andmed on olemas |
+| mart_price_not_null | Mart-kihi faktitabelis ei ole puuduvaid elektrihindu |
 | mart_fact_has_rows | Faktitabel sisaldab andmeid |
 | action_values_valid | `action_needed` sisaldab ainult lubatud väärtusi |
 | action_and_label_consistent | Tegevus ja kirjeldus on omavahel kooskõlas |
