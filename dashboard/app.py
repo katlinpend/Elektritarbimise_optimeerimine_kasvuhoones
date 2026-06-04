@@ -387,6 +387,12 @@ st.subheader("KPI 3 – Päevane kulu")
 if not filt_daily_for_kpi.empty:
     cost_summary = filt_daily_for_kpi.copy()
     cost_summary["Kuupäev"] = cost_summary["forecast_date"].dt.strftime("%d.%m")
+    selected_date_label = cost_summary["forecast_date"].iloc[0].strftime("%d.%m.%Y")
+
+    st.caption(
+        f"Graafik näitab valitud asukohta ({detail_location}) ja kuupäeva ({selected_date_label}). "
+        "Tabel all võrdleb sama kuupäeva kõigi valitud asukohtade lõikes."
+    )
 
     cost_data = cost_summary.melt(
         id_vars=["location_name", "forecast_date", "Kuupäev"],
@@ -408,7 +414,7 @@ if not filt_daily_for_kpi.empty:
     cost_chart = (
         alt.Chart(cost_data)
         .mark_bar()
-         .encode(
+        .encode(
             y=alt.Y(
                 "näitaja:N",
                 title=None,
@@ -445,6 +451,7 @@ if not filt_daily_for_kpi.empty:
                 ),
             ),
             tooltip=[
+                alt.Tooltip("location_name:N", title="Asukoht"),
                 alt.Tooltip("Kuupäev:N", title="Kuupäev"),
                 alt.Tooltip("näitaja:N", title="Näitaja"),
                 alt.Tooltip("euro:Q", title="€", format=".2f"),
@@ -452,13 +459,14 @@ if not filt_daily_for_kpi.empty:
         )
         .properties(
             height=300,
-            title=f"Päevane kulu ja sääst",
+            title=f"Päevane kulu ja sääst - {detail_location}, {selected_date_label}",
         )
     )
 
     st.altair_chart(cost_chart, use_container_width=True)
 
     # Päevakoond tabel
+    st.markdown("**Päevane kulu ja sääst kõigi valitud asukohtade lõikes**")
     filt_daily_display = filt_daily_for_charts.copy()
     filt_daily_display["forecast_date"] = (
         filt_daily_display["forecast_date"]
