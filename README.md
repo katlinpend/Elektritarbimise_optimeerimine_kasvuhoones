@@ -61,17 +61,17 @@ Projekt sisaldab automatiseeritud andmekvaliteedi teste, mis käivitatakse pära
 | dim_location_has_active_rows | Vähemalt üks aktiivne asukoht on olemas |
 | active_locations_have_coordinates | Aktiivsetel asukohtadel on korrektsed koordinaadid |
 | weather_raw_has_rows | Viimases laadimises on toorandmeid |
-| weather_raw_has_all_active_locations | Kõigi aktiivsete asukohtade kohta on andmed olemas |
-| weather_raw_has_forecast_time | Prognoosiaeg ei ole tühi |
+| latest_run_has_active_locations | Kõigi aktiivsete asukohtade kohta on viimases laadimises andmed olemas |
+| forecast_time_not_null | Prognoosiaeg ei ole tühi |
+| forecast_time_not_stale | Prognoosiaeg ei ole aegunud |
 | unique_location_time_per_run | Duplikaatkirjed puuduvad |
-| temperature_reasonable | Temperatuur jääb mõistlikku vahemikku |
-| mart_price_not_null | Mart-kihi faktitabelis ei ole puuduvaid elektrihindu |
-| mart_fact_has_rows | Faktitabel sisaldab andmeid |
-| action_values_valid | `action_needed` sisaldab ainult lubatud väärtusi |
+| temperature_reasonable | Temperatuur jääb vahemikku -50°C kuni 50°C |
+| price_coverage_exists | Elektrihinna andmed on olemas |
+| mart_price_not_null | Mart-kihi tabelis ei ole puuduvaid elektrihindu |
+| mart_hourly_score_has_rows | Tunnipõhine skooritabel sisaldab andmeid |
 | action_and_label_consistent | Tegevus ja kirjeldus on omavahel kooskõlas |
-| combined_score_in_range | Arvutatud skoor jääb lubatud vahemikku |
+| combined_score_range | Arvutatud skoor jääb lubatud vahemikku |
 | mart_daily_summary_has_rows | Päevakoondtabel sisaldab andmeid |
-| latest_pipeline_success | Viimane pipeline jooks lõppes edukalt |
 
 Viimases kontrollis läbisid kõik testid edukalt (`failed_tests = 0`).
 
