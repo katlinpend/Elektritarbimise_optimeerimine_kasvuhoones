@@ -4,7 +4,7 @@
 Selle projekti eesmärk on analüüsida, millal tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulusid börsihinnaga elektrilepingu korral.
 
 ## Äriküsimus
-Millistel tundidel tasub kasvuhoones kasutada elektrit nõudvaid seadmeid (küte, ventilatsioon), et vähendada elektrikulu börsihinna tingimustes, arvestades välistemperatuuri?
+Millistel tundidel on kasvuhoones vaja kasutada elektrit nõudvaid seadmeid (küte ja ventilatsioon), arvestades hinnangulist sisetemperatuuri, ning kui palju väiksem on hinnanguline elektrikulu võrreldes olukorraga, kus seade töötaks kogu päeva jooksul pidevalt?
 
 ---
 
@@ -19,12 +19,13 @@ Projekt kasutab elektri börsihindu ja ilmaandmeid, et leida soodsaimad ajad ele
 
 ## Projekti ulatus
 
-Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi ning katab otsast lõpuni andmetöövoo:
+Projekt on tehtud kursuse **UT andmeinseneeria 2026** projektitöö nõuete järgi katab tervikliku andmetöövoo alates andmete kogumisest kuni visualiseerimiseni.
 
-1. Andmete sissevõtt (ingest)
-2. Transformatsioon
-3. Andmekvaliteedi testid
-4. Dashboard
+1. Andmete sissevõtt (ingest) Open-Meteo Forecast API-st ja Elering NPS API-st.
+2. Andmete transformatsioon, mille käigus arvutatakse hinnanguline kasvuhoone sisetemperatuur, energiavajadus ning elektrikulu näitajad.
+3. Andmekvaliteedi testid, mis kontrollivad lähteandmete olemasolu, korrektsust ja transformatsioonide tulemusi.
+4. Streamlit Dashboard, mis kuvab KPI-d ja visualiseeringud kasvuhoone energiavajaduse ning elektrikulude kohta.
+5. Automatiseeritud töövoog, kus cron scheduler käivitab andmete uuendamise regulaarselt.
 
 ---
 
@@ -51,6 +52,31 @@ Mudelit kasutatakse demonstratsiooniks ning tegemist ei ole täpse agronoomilise
 
 ---
 
+## Andmekvaliteedi testid
+
+Projekt sisaldab automatiseeritud andmekvaliteedi teste, mis käivitatakse pärast andmete laadimist ja transformatsioone. Testide tulemused salvestatakse tabelisse `quality.test_results`.
+
+| Test | Eesmärk |
+|--------|--------|
+| dim_location_has_active_rows | Vähemalt üks aktiivne asukoht on olemas |
+| active_locations_have_coordinates | Aktiivsetel asukohtadel on korrektsed koordinaadid |
+| weather_raw_has_rows | Viimases laadimises on toorandmeid |
+| weather_raw_has_all_active_locations | Kõigi aktiivsete asukohtade kohta on andmed olemas |
+| weather_raw_has_forecast_time | Prognoosiaeg ei ole tühi |
+| unique_location_time_per_run | Duplikaatkirjed puuduvad |
+| temperature_reasonable | Temperatuur jääb mõistlikku vahemikku |
+| mart_price_not_null | Mart-kihi faktitabelis ei ole puuduvaid elektrihindu |
+| mart_fact_has_rows | Faktitabel sisaldab andmeid |
+| action_values_valid | `action_needed` sisaldab ainult lubatud väärtusi |
+| action_and_label_consistent | Tegevus ja kirjeldus on omavahel kooskõlas |
+| combined_score_in_range | Arvutatud skoor jääb lubatud vahemikku |
+| mart_daily_summary_has_rows | Päevakoondtabel sisaldab andmeid |
+| latest_pipeline_success | Viimane pipeline jooks lõppes edukalt |
+
+Viimases kontrollis läbisid kõik testid edukalt (`failed_tests = 0`).
+
+---
+
 ## Andmeallikad
 
 Projekt modelleerib kasvuhoone otsuseid 5 Eesti asukoha põhjal:
@@ -63,8 +89,8 @@ Projekt modelleerib kasvuhoone otsuseid 5 Eesti asukoha põhjal:
 
 Põhiandmeallikad:
 
-- **Open-Meteo Forecast API** – välistemperatuur ja tunniandmed
-- **Elering NPS API** (`/api/nps/price`) – elektri börsihind tunni kaupa
+- **Open-Meteo Forecast API** – tunnipõhine välistemperatuuri prognoos
+- **Elering NPS API** – tunnipõhine elektri spot-hind Eestis
 
 Oluline piirang:
 
@@ -86,10 +112,12 @@ FORECAST_DAYS=2
 
 ## Tehnoloogiad
 
-- Dashboard: Phyton + Streamlit + Altair
+- Dashboard: Streamlit + Altair
 - Andmebaas: PostgreSQL
-- Andmetöötlus: Phyton + SQL
-- Konteinerid ja ajastus: Docker + cron
+- Andmete sissevõtt: Python + Requests
+- Andmetöötlus: Python + SQL
+- Konteinerid ja orkestreerimine: Docker Compose
+- Ajastus: Cron
 - Versioonihaldus: GitHub
 
 ---
@@ -118,15 +146,16 @@ flowchart LR
 
 ## Planeeritud töövoog
 
-1. Python script küsib API-dest andmed
-2. Andmed salvestatakse PostgreSQL andmebaasi
-3. SQL transformatsioon valmistab andmed analüüsiks ette
-4. Dashboard kuvab soovitused ja hinnainfo
-5. cron käivitab andmete uuendamise automaatselt
+1. Python pipeline pärib ilmaandmed Open-Meteo API-st ja elektrihinnad Elering NPS API-st.
+2. Toorandmed salvestatakse PostgreSQL andmebaasi staging-kihti.
+3. SQL transformatsioonid loovad mart-kihi tabelid ning arvutavad KPI-de jaoks vajalikud näitajad.
+4. Andmekvaliteedi testid kontrollivad andmete korrektsust ja transformatsioonide tulemusi.
+5. Streamlit dashboard kuvab KPI-d, visualiseerimised ja kvaliteeditestide tulemused.
+6. Cron scheduler käivitab andmete uuendamise automaatselt.
 
 ---
 
-## Minimaalne kaustastruktuur
+## Projekti kaustastruktuur
 
 ```text
 .
@@ -141,12 +170,15 @@ flowchart LR
 │   ├── 00_seed_dimensions.sql
 │   ├── 01_transform.sql
 │   ├── 02_quality_tests.sql
+│   ├── 03_check_results.sql
+│   ├── requirements.txt
 │   ├── run_pipeline.py
 │   └── start_cron.sh
 ├── .env.example
-├── compose.yml
-├── requirements.txt
-└── README.md
+├── .gitignore
+├── Dockerfile.app
+├── README.md
+└── compose.yml
 ```
 
 ---
@@ -176,12 +208,15 @@ http://localhost:8501
 
 ## Projekti struktuur
 
-```text
-docs/           dokumentatsioon
-scripts/        Python töövoog
-dashboard/      visualiseerimine
-init/           andmebaasi objektid
-```
+| Kaust / fail | Kirjeldus |
+|-------------|-----------|
+| `docs/` | Projekti dokumentatsioon (arhitektuur, töö edenemine) |
+| `scripts/` | Andmete sissevõtt, transformatsioonid, kvaliteeditestid ja scheduler |
+| `dashboard/` | Streamlit dashboard ja visualiseerimised |
+| `init/` | Andmebaasi objektide loomise SQL skriptid |
+| `.env.example` | Keskkonnamuutujate näidisfail |
+| `compose.yml` | Docker Compose konfiguratsioon |
+| `README.md` | Projekti dokumentatsioon ja käivitusjuhend |
 
 ---
 
@@ -193,9 +228,39 @@ Rollide jaotus on kirjeldatud failis:
 docs/arhitektuur.md
 ```
 1. Sirja Hass
-2. Ave Kaare
-3. Piret Sults
-4. Kätlin Pendarov
+2. Piret Sults
+3. Ave Kaare
+5. Kätlin Pendarov
 
+---
 
+## Kokkuvõte, puudused ja võimalikud edasiarendused
+
+Kokkuvõttes valmis projekti käigus täielik andmetöövoog kasvuhoone elektritarbimise optimeerimise hindamiseks. Valmis said:
+
+- Open-Meteo Forecast API ja Elering NPS API andmete automaatne sissevõtt.
+- PostgreSQL andmebaasi staging- ja mart-kihi andmemudel.
+- SQL transformatsioonid, mis arvutavad hinnangulise sisetemperatuuri, energiavajaduse ning elektrikulud.
+- 14 automatiseeritud andmekvaliteedi testi.
+- Streamlit dashboard kolme peamise KPI-ga.
+- Docker Compose keskkond koos scheduleriga.
+- Cron-põhine automaatne andmete uuendamine.
+- Projekti dokumentatsioon ja käivitusjuhised.
+
+Puudused:
+
+- Kasvuhoone sisetemperatuuri hinnatakse lihtsustatud mudeliga (välistemperatuur + 5°C), mitte tegelike sensoriandmete põhjal.
+- Küte ja ventilatsioon on modelleeritud lihtsustatud loogikaga ega arvesta seadmete erinevat võimsust või töörežiime.
+- Elektrikulu arvutustes kasutatakse fikseeritud energiatarbimise eeldust (5 kWh tunnis).
+- Eleringi day-ahead hinnad ei kata alati kogu ilmaennustuse perioodi, mistõttu kasutatakse ainult neid ridu, mille jaoks on elektrihind olemas.
+- Dashboard keskendub peamiselt päevataseme KPI-dele ning ei sisalda detailsemaid analüütilisi vaateid.
+
+Mis edasi? Kui projekti edasi arendada, võiks:
+
+- kasutada päris kasvuhoone sensoriandmeid sisetemperatuuri hindamise asemel;
+- lisada niiskuse, päikesekiirguse ja muude keskkonnanäitajate mõju;
+- luua täpsema energiatarbimise mudeli erinevate seadmete jaoks;
+- lisada rohkem filtreid ja võrdlusvaateid dashboardile;
+- lisada automaatsed teavitused kõrge elektrihinna või suure energiavajaduse korral;
+- kasutada pikemaajalisi prognoose ja ajaloolisi andmeid trendide analüüsimiseks.
 
