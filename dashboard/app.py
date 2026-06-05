@@ -417,6 +417,10 @@ if not filt_daily_for_kpi.empty:
         "avg_price_cost_eur": "Pidev kasutus",
         "estimated_savings_eur": "Sääst",
     })
+    cost_order = (
+        cost_data.sort_values("euro", ascending=False)["näitaja"]
+        .tolist()
+    )
 
     cost_chart = (
         alt.Chart(cost_data)
@@ -425,11 +429,7 @@ if not filt_daily_for_kpi.empty:
             y=alt.Y(
                 "näitaja:N",
                 title=None,
-                sort=[
-                    "Pidev kasutus",
-                    "Reeglipõhine kulu",
-                    "Sääst",
-                ],
+                sort=cost_order,
             ),
             x=alt.X(
                 "euro:Q",
