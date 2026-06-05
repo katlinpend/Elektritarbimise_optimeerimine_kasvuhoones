@@ -19,6 +19,52 @@ st.set_page_config(
     layout="wide",
 )
 
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 2.4rem;
+        padding-bottom: 3rem;
+        max-width: 1180px;
+    }
+    h1 {
+        max-width: 900px;
+        line-height: 1.08;
+    }
+    h3 {
+        margin-top: 2rem;
+    }
+    div[data-testid="stMetric"] {
+        background: #f8fafc;
+        border: 1px solid #e6eaf0;
+        border-radius: 8px;
+        padding: 1rem 1.1rem;
+    }
+    div[data-testid="stMetricValue"] {
+        font-size: 2.2rem;
+    }
+    .view-summary {
+        border-left: 4px solid #1f77b4;
+        background: #f6f8fb;
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        margin: 1.25rem 0 1.5rem 0;
+    }
+    .view-summary strong {
+        color: #202532;
+    }
+    .decision-note {
+        background: #eef8f1;
+        border: 1px solid #cfead6;
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+        margin: 0.75rem 0 1rem 0;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 ACTION_DOMAIN = ["heating", "ventilation", "none"]
 ACTION_COLORS = ["#e07b39", "#2f9e44", "#adb5bd"]
 ACTION_LABELS = {
@@ -235,6 +281,13 @@ else:
     filt_daily_for_kpi = pd.DataFrame()
     filt_daily_for_charts = filt_daily.copy()
 
+selected_date_label = (
+    pd.Timestamp(selected_date).strftime("%d.%m.%Y")
+    if selected_date is not None
+    else "Kõik kuupäevad"
+)
+selected_locations_label = ", ".join(selected_locations)
+
 # ------------------------------------------------------------------
 # Pealkiri ja viimane laadimine
 # ------------------------------------------------------------------
@@ -247,11 +300,20 @@ if not latest_run.empty:
     run = latest_run.iloc[0]
     st.caption(f"Viimane laadimine: {run['fetched_at']} | {run['message']}")
 
+st.markdown(
+    f"""
+    <div class="view-summary">
+        <strong>Vaade:</strong> {detail_location}, {selected_date_label}<br>
+        <strong>Võrdluses:</strong> {selected_locations_label}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ------------------------------------------------------------------
 # KPI mõõdikud (valitud asukoht ja kuupäev)
 # ------------------------------------------------------------------
 if selected_date is not None:
-    selected_date_label = pd.Timestamp(selected_date).strftime("%d.%m.%Y")
     st.subheader("Valitud asukoha päevakokkuvõte")
     st.caption(
         f"Ülemised mõõdikud on arvutatud valitud asukoha ({detail_location}) "
@@ -290,10 +352,33 @@ if not filt_daily_for_kpi.empty:
         f"Pidev {total_continuous_cost:.2f} €, sääst {total_savings:.2f} €",
     )
 
+    if total_hours > 0:
+        st.markdown(
+            f"""
+            <div class="decision-note">
+                {detail_location}: valitud päeval on sekkumist vaja {total_hours} tunnil.
+                Reeglipõhine kasutus vähendab hinnangulist päevakulu {total_savings:.2f} €
+                võrreldes pideva kasutusega.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+            <div class="decision-note">
+                {detail_location}: valitud päeval ei ole kütte- ega ventilatsioonivajadust.
+                Seetõttu jääb reeglipõhine elektrikulu 0 € juurde.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
 # ------------------------------------------------------------------
 # KPI 1: Kütte- ja ventilatsioonitundide arv päevas
 # ------------------------------------------------------------------
-st.subheader("Tegevustunnid asukohtade lõikes")
+st.divider()
+st.subheader("Kus on valitud päeval kõige rohkem sekkumist vaja?")
 st.caption(
     "Graafik võrdleb asukohti valitud kuupäeval. "
     "Asukohad on järjestatud tegevustundide koguarvu järgi."
@@ -360,7 +445,8 @@ if not filt_daily_for_charts.empty:
 # ------------------------------------------------------------------
 # KPI 2: Keskmine elektrihind reeglipõhise kasutuse tundidel võrreldes päeva keskmise hinnaga
 # ------------------------------------------------------------------
-st.subheader("Elektrihind valitud asukohas")
+st.divider()
+st.subheader("Kas vajalikud tunnid langevad kallimale või odavamale ajale?")
 if selected_date is not None:
     st.caption(
         f"Võrdlus näitab valitud asukoha ({detail_location}) reeglipõhiste tundide "
@@ -439,12 +525,12 @@ else:
 # ------------------------------------------------------------------
 # KPI 3: Hinnanguline päevane elektrikulu reeglipõhises kasutuses vs pidev kasutus
 # ------------------------------------------------------------------
-st.subheader("Päevane kulu valitud asukohas")
+st.divider()
+st.subheader("Kui palju aitab reeglipõhine kasutus kulu vähendada?")
 
 if not filt_daily_for_kpi.empty:
     cost_summary = filt_daily_for_kpi.copy()
     cost_summary["Kuupäev"] = cost_summary["forecast_date"].dt.strftime("%d.%m")
-    selected_date_label = cost_summary["forecast_date"].iloc[0].strftime("%d.%m.%Y")
 
     st.caption(
         f"Graafik näitab valitud asukohta ({detail_location}) ja kuupäeva ({selected_date_label}). "
@@ -519,6 +605,10 @@ if not filt_daily_for_kpi.empty:
         .sort_values("estimated_savings_eur", ascending=False)
         .copy()
     )
+    filt_daily_display["activity_hours"] = (
+        filt_daily_display["heating_hours"]
+        + filt_daily_display["ventilation_hours"]
+    )
     filt_daily_display["forecast_date"] = (
         filt_daily_display["forecast_date"]
         .dt.strftime("%d.%m.%Y")
@@ -527,21 +617,25 @@ if not filt_daily_for_kpi.empty:
         filt_daily_display[[
             "location_name",
             "forecast_date",
+            "activity_hours",
             "heating_hours",
             "ventilation_hours",
             "rule_based_cost_eur",
-            "avg_price_cost_eur",
             "estimated_savings_eur",
+            "avg_price_cost_eur",
             "avg_price_eur_kwh",
+            "weather_risk_level",
         ]].rename(columns={
             "location_name": "Asukoht",
             "forecast_date": "Kuupäev",
+            "activity_hours": "Tegevustunde",
             "heating_hours": "Küttetunde",
             "ventilation_hours": "Vent. tunde",
             "rule_based_cost_eur": "Reeglipõhine kulu €",
-            "avg_price_cost_eur": "Pidev kasutus €",
             "estimated_savings_eur": "Sääst €",
+            "avg_price_cost_eur": "Pidev kasutus €",
             "avg_price_eur_kwh": "Päeva keskmine hind €/kWh",
+            "weather_risk_level": "Päeva hinnang",
         }),
         use_container_width=True,
         hide_index=True,
@@ -559,7 +653,9 @@ if selected_date is not None:
 else:
     temperature_title = f"Temperatuur valitud asukohas – {detail_location}"
 
-st.subheader(temperature_title)
+st.divider()
+st.subheader(f"Kuidas temperatuur otsust mõjutab? {detail_location}")
+st.caption(temperature_title)
 
 if not detail_data.empty:
     temp_base = alt.Chart(detail_data)
@@ -645,14 +741,24 @@ if not detail_data.empty:
 # ------------------------------------------------------------------
 # Andmekvaliteedi testid
 # ------------------------------------------------------------------
-st.subheader("Andmekvaliteedi kontrollid")
 if not quality.empty:
     def highlight_status(row):
         if row["status"] == "failed":
             return ["background-color: #FCEBEB"] * len(row)
         return [""] * len(row)
-    st.dataframe(
-        quality.style.apply(highlight_status, axis=1),
-        use_container_width=True,
-        hide_index=True,
+
+    failed_quality_count = int(
+        ((quality["status"] == "failed") | (quality["failed_rows"] > 0)).sum()
     )
+    expander_label = (
+        "Andmekvaliteedi kontrollid"
+        if failed_quality_count == 0
+        else f"Andmekvaliteedi kontrollid ({failed_quality_count} probleemset testi)"
+    )
+
+    with st.expander(expander_label, expanded=failed_quality_count > 0):
+        st.dataframe(
+            quality.style.apply(highlight_status, axis=1),
+            use_container_width=True,
+            hide_index=True,
+        )
