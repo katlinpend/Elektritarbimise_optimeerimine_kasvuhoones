@@ -90,6 +90,15 @@ if auto_refresh_seconds > 0 and st_autorefresh is not None:
 if st.sidebar.button("Värskenda vaade"):
     st.rerun()
 
+demo_mode = st.sidebar.toggle(
+    "Demorežiim (näidisandmed)",
+    value=False,
+    help=(
+        "Kuvab video ja esitluse jaoks näidisstsenaariumi. "
+        "Andmebaasis olevaid pärisandmeid ei muudeta."
+    ),
+)
+
 
 def get_connection():
     return psycopg2.connect(
@@ -120,6 +129,142 @@ def action_color() -> alt.Color:
             labelExpr="datum.value === 'heating' ? 'Küte' : datum.value === 'ventilation' ? 'Ventilatsioon' : 'Sobiv'",
         ),
     )
+
+
+def apply_demo_scenario(
+    hourly_data: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    demo_hourly = hourly_data.copy()
+    demo_periods = {
+        "Tallinn": {
+            "heating": set(range(0, 5)),
+            "ventilation": set(range(13, 17)),
+        },
+        "Tartu": {
+            "heating": set(range(0, 7)),
+            "ventilation": set(),
+        },
+        "Pärnu": {
+            "heating": set(),
+            "ventilation": set(range(11, 18)),
+        },
+        "Kohtla-Järve": {
+            "heating": set(range(0, 8)),
+            "ventilation": set(range(14, 17)),
+        },
+        "Kuressaare": {
+            "heating": set(range(4, 6)),
+            "ventilation": set(range(15, 19)),
+        },
+    }
+    location_price_offset = {
+        "Tallinn": 0,
+        "Tartu": 2,
+        "Pärnu": -2,
+        "Kohtla-Järve": 4,
+        "Kuressaare": -4,
+    }
+
+    def demo_values(row: pd.Series) -> pd.Series:
+        hour = int(row["forecast_hour"])
+        periods = demo_periods.get(
+            row["location_name"],
+            {"heating": set(), "ventilation": set()},
+        )
+
+        if hour in periods["heating"]:
+            temperature_c = 5.0 + (hour % 2)
+            action_needed = "heating"
+        elif hour in periods["ventilation"]:
+            temperature_c = 24.0 + (hour % 2)
+            action_needed = "ventilation"
+        else:
+            temperature_c = 16.0 + min(abs(12 - hour), 4) * 0.4
+            action_needed = "none"
+
+        if hour < 6:
+            base_price = 35
+        elif hour < 10:
+            base_price = 75
+        elif hour < 16:
+            base_price = 48
+        elif hour < 21:
+            base_price = 92
+        else:
+            base_price = 55
+
+        price_eur_mwh = base_price + location_price_offset.get(
+            row["location_name"],
+            0,
+        )
+        estimated_inside_temp_c = temperature_c + 5
+
+        if action_needed == "heating":
+            suitability_label = "Küte vajalik"
+            main_reason = "Hinnanguline sisetemperatuur alla 12°C"
+            combined_score = 40
+        elif action_needed == "ventilation":
+            suitability_label = "Ventilatsioon vajalik"
+            main_reason = "Hinnanguline sisetemperatuur üle 28°C"
+            combined_score = 40
+        else:
+            suitability_label = "Temperatuur sobiv"
+            main_reason = "Hinnanguline sisetemperatuur sobivas vahemikus"
+            combined_score = 100
+
+        return pd.Series({
+            "temperature_c": temperature_c,
+            "estimated_inside_temp_c": estimated_inside_temp_c,
+            "price_eur_mwh": price_eur_mwh,
+            "action_needed": action_needed,
+            "combined_score": combined_score,
+            "suitability_label": suitability_label,
+            "main_reason": main_reason,
+        })
+
+    demo_columns = demo_hourly.apply(demo_values, axis=1)
+    for column in demo_columns.columns:
+        demo_hourly[column] = demo_columns[column]
+
+    daily_rows = []
+    for (location_name, forecast_date), group in demo_hourly.groupby(
+        ["location_name", "forecast_date"],
+        sort=False,
+    ):
+        action_mask = group["action_needed"].isin(["heating", "ventilation"])
+        heating_hours = int((group["action_needed"] == "heating").sum())
+        ventilation_hours = int(
+            (group["action_needed"] == "ventilation").sum()
+        )
+        activity_hours = heating_hours + ventilation_hours
+        rule_based_cost = (
+            group.loc[action_mask, "price_eur_mwh"].sum() * 5 / 1000
+        )
+        continuous_cost = group["price_eur_mwh"].sum() * 5 / 1000
+
+        if activity_hours >= 12:
+            risk_level = "Kõrgem energiavajadus"
+        elif activity_hours >= 6:
+            risk_level = "Mõõdukas energiavajadus"
+        else:
+            risk_level = "Madal energiavajadus"
+
+        daily_rows.append({
+            "location_name": location_name,
+            "forecast_date": forecast_date,
+            "heating_hours": heating_hours,
+            "ventilation_hours": ventilation_hours,
+            "avg_price_eur_mwh": round(group["price_eur_mwh"].mean(), 2),
+            "rule_based_cost_eur": round(rule_based_cost, 2),
+            "avg_price_cost_eur": round(continuous_cost, 2),
+            "estimated_savings_eur": round(
+                continuous_cost - rule_based_cost,
+                2,
+            ),
+            "weather_risk_level": risk_level,
+        })
+
+    return demo_hourly, pd.DataFrame(daily_rows)
 
 
 # ------------------------------------------------------------------
@@ -208,6 +353,9 @@ if not daily.empty:
                 "rule_based_cost_eur", "avg_price_cost_eur", "estimated_savings_eur"]:
         daily[col] = pd.to_numeric(daily[col], errors="coerce")
 
+if demo_mode:
+    hourly, daily = apply_demo_scenario(hourly)
+
 
 # ------------------------------------------------------------------
 # Küljeriba – asukoha valik
@@ -295,6 +443,13 @@ st.title("Elektritarbimise optimeerimine kasvuhoones")
 st.markdown(
     "Millistel tundidel on kasvuhoones vaja kasutada elektrit nõudvaid seadmeid (küte ja ventilatsioon), arvestades hinnangulist sisetemperatuuri, ning kui palju väiksem on hinnanguline elektrikulu võrreldes olukorraga, kus seade töötaks kogu päeva jooksul pidevalt?"
 )
+
+if demo_mode:
+    st.warning(
+        "Demorežiim on sisse lülitatud. Kuvatud temperatuurid, hinnad ja "
+        "tegevusvajadused on funktsionaalsuse tutvustamiseks loodud "
+        "näidisandmed. Andmebaasi pärisandmeid ei muudeta."
+    )
 
 if not latest_run.empty:
     run = latest_run.iloc[0]

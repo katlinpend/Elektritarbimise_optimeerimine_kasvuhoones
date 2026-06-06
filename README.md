@@ -208,6 +208,11 @@ Dashboard:
 http://localhost:8501
 ```
 
+Video või esitluse ajal saab küljeribalt sisse lülitada valiku
+**Demorežiim (näidisandmed)**. See kuvab läbipaistvalt märgistatud
+näidisstsenaariumi, milles on näha nii kütte- kui ventilatsioonivajadus.
+Demorežiim ei kirjuta andmebaasi ega muuda pärisandmeid.
+
 ---
 
 ## Projekti struktuur
